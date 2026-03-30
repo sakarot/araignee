@@ -126,6 +126,63 @@
   .stat-item { display: flex; flex-direction: column; gap: 4px; }
   .stat-lbl { font-family: 'Space Mono', monospace; font-size: 9px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; }
   .stat-val { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: #fff; }
+  /* =========================================
+     OPTIMISATIONS MOBILE (Écrans < 768px)
+     ========================================= */
+  @media (max-width: 768px) {
+   .container { 
+      padding: 20px 16px; /* Remplace le 40px 24px initial */
+    }
+    header { 
+      margin-bottom: 24px; 
+      gap: 16px;
+    }
+     /* La règle initiale minmax(320px, 1fr) force une largeur trop grande pour les petits écrans */
+    .sliders-grid { 
+      grid-template-columns: 1fr; 
+      gap: 24px;
+    }
+  
+   .controls-header { 
+      flex-direction: column; 
+      align-items: stretch; 
+      gap: 16px; 
+    }
+    .candidate-selector { 
+      width: 100%; 
+    }
+    .selector-btn { 
+      flex: 1; /* Les boutons prennent 50% de la largeur chacun */
+      text-align: center;
+    }
+    
+  th, td { 
+      padding: 8px; /* Remplace le padding initial de 9px 12px */
+      font-size: 11px; /* Réduit la taille de la police du tableau */
+    }
+    .pct-bar-cell { 
+      width: 80px; /* Réduit la largeur de la barre de volume */
+    }
+
+    .map-container { 
+      height: 320px; /* Réduit la hauteur pour ne pas prendre tout l'écran (initial 420px) */
+    }
+    .drom-com-container {
+      bottom: 0px; 
+      left: 0px;
+      transform: scale(0.85); /* Réduit un peu la taille des îles pour éviter qu'elles ne masquent la métropole */
+      transform-origin: bottom left;
+    }
+    
+    .global-stats-row {
+      gap: 12px;
+      padding: 10px;
+    }
+    .stat-val {
+      font-size: 11px; /* Taille plus adaptée */
+    }
+  }
+
 </style>
 </head>
 <body>
