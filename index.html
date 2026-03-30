@@ -646,7 +646,7 @@ function onDualSlider(parti, type, value) {
   }
   updateTimeout = setTimeout(() => {
     update(); // Se lance uniquement quand le doigt s'arrête pendant 50ms
-  }, 50); 
+  }, 10); 
 }
 
 
@@ -1062,6 +1062,29 @@ function updateT2Bar(t2scores) {
   currentT2ExprimesPct = t2scores.exprimes_pct; 
 }
 
+// Nouvelle fonction très légère qui ne fait que changer les couleurs
+function updateMapColors() {
+  if (!geojsonCacheFull) return;
+
+  // 1. Repeindre la carte du 1er Tour
+  let mapDataT1 = (currentMapT1Mode === '2027') ? MAP_T1_27 : HISTORICAL_DATA[currentMapT1Mode]['T1'].map;
+  
+  d3.select("#mapT1").selectAll(".main-map path")
+    .attr("fill", d => getFeatureColor(d.properties.code, 'T1', currentMapT1Mode, mapDataT1));
+    
+  d3.select("#mapCardT1 .drom-com-container").selectAll("path")
+    .attr("fill", d => getFeatureColor(d.properties.code, 'T1', currentMapT1Mode, mapDataT1) || '#222');
+
+  // 2. Repeindre la carte du 2nd Tour
+  let mapDataT2 = (currentMapT2Mode === '2027') ? computeDynamicT2Map() : HISTORICAL_DATA[currentMapT2Mode]['T2'].map;
+  
+  d3.select("#mapT2").selectAll(".main-map path")
+    .attr("fill", d => getFeatureColor(d.properties.code, 'T2', currentMapT2Mode, mapDataT2));
+    
+  d3.select("#mapCardT2 .drom-com-container").selectAll("path")
+    .attr("fill", d => getFeatureColor(d.properties.code, 'T2', currentMapT2Mode, mapDataT2) || '#222');
+}
+
 function update() {
   const t1scores = computeFirstRoundScores();
   const t2scores = computeSecondRoundData(t1scores);
@@ -1133,7 +1156,7 @@ function update() {
     <div class="stat-item"><span class="stat-lbl">Exprimés (100%)</span><span class="stat-val" style="color:var(--accent)">${stats.exp.toLocaleString('fr-FR')}</span></div>
   `;
 
-  renderMaps();
+  updateMapColors();
 }
 
 buildSliders(); initCharts(); initMaps(); update();
