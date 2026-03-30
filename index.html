@@ -183,22 +183,26 @@
     }
   }
 
-        /* infobulles (Tooltips) sur mobile */
+          /* infobulles (Tooltips) sur mobile */
     .map-tooltip {
-      /* On écrase le positionnement JavaScript (qui suit la souris) */
+      /* On écrase le positionnement vertical du JS */
       top: auto !important; 
-      left: 50% !important;
       bottom: 20px !important;
-      transform: translateX(-50%) !important;
       
-      /* On lui donne une bonne largeur et on l'empêche de déborder */
+      /* MÉTHODE INFAILLIBLE DE CENTRAGE */
+      left: 0 !important;
+      right: 0 !important;
+      margin: 0 auto !important;
+      transform: none !important; /* On annule le transform qui bug */
+      
+      /* Gestion de la largeur */
       width: calc(100% - 32px) !important; 
-      min-width: auto;
-      max-width: 400px;
+      max-width: 400px !important;
+      min-width: 0 !important; /* Obligatoire pour écraser le 220px initial */
       
-      /* On augmente un peu la taille du texte pour la lisibilité */
       font-size: 14px;
       padding: 16px 20px;
+      box-sizing: border-box !important; /* Sécurité pour inclure le padding dans la largeur */
     }
     
     .tt-header { font-size: 17px; }
@@ -206,7 +210,6 @@
     .tt-winner { font-size: 14px; }
     .tt-row { font-size: 13px; margin-bottom: 8px; }
     .tt-stats { font-size: 12px; gap: 6px; }
-
 
 </style>
 </head>
