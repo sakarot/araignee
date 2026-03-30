@@ -185,24 +185,27 @@
 
           /* infobulles (Tooltips) sur mobile */
     .map-tooltip {
-      /* On écrase le positionnement vertical du JS */
+      /* On écrase la position verticale du JS */
       top: auto !important; 
       bottom: 20px !important;
       
-      /* MÉTHODE INFAILLIBLE DE CENTRAGE */
-      left: 0 !important;
-      right: 0 !important;
-      margin: 0 auto !important;
-      transform: none !important; /* On annule le transform qui bug */
+      /* LA SOLUTION MAGIQUE : on ancre à 16px des deux côtés */
+      left: 16px !important;
+      right: 16px !important;
       
-      /* Gestion de la largeur */
-      width: calc(100% - 32px) !important; 
-      max-width: 400px !important;
-      min-width: 0 !important; /* Obligatoire pour écraser le 220px initial */
+      /* On force la largeur à s'adapter entre ces deux ancres */
+      width: auto !important; 
+      min-width: 0 !important;
+      max-width: none !important;
       
+      /* On supprime tout ce qui pourrait décaler la boîte */
+      margin: 0 !important;
+      transform: none !important; 
+      
+      /* Cosmétique */
       font-size: 14px;
       padding: 16px 20px;
-      box-sizing: border-box !important; /* Sécurité pour inclure le padding dans la largeur */
+      box-sizing: border-box !important;
     }
     
     .tt-header { font-size: 17px; }
