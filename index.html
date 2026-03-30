@@ -183,28 +183,16 @@
     }
   }
 
-        /* Optimisation des infobulles (Tooltips) sur mobile (Correction) */
+    /* Infobulles : Tailles réduites pour mobile (sans casser le JavaScript) */
     .map-tooltip {
-      /* Annule le positionnement de la souris */
-      top: auto !important;
-      bottom: 20px !important;
-      
-      /* Ancrage fixe à gauche et à droite pour garantir qu'elle ne déborde pas horizontalement */
-      left: 16px !important;
-      right: 16px !important;
-      transform: none !important;
-      width: auto !important;
-      min-width: 0 !important;
-      
-      /* Empêche le débordement vertical si la liste des candidats est très longue */
-      max-height: 40vh !important; /* Ne prendra jamais plus de 40% de la hauteur de l'écran */
-      overflow-y: auto !important; /* Ajoute un scroll interne si nécessaire */
-      
-      /* Amélioration de la lisibilité */
-      font-size: 14px;
-      padding: 16px;
-      box-sizing: border-box !important;
+      width: 220px !important; /* Largeur fixe adaptée aux petits écrans */
+      min-width: 200px !important;
+      white-space: normal !important; /* Force le texte à aller à la ligne s'il est trop long */
+      padding: 10px !important; /* Marges réduites */
     }
+    .tt-row { margin-bottom: 2px; }
+    .tt-stats { margin-top: 4px; padding-top: 4px; }
+
 
 </style>
 </head>
