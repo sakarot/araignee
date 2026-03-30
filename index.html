@@ -183,15 +183,29 @@
     }
   }
 
-    /* Infobulles : Tailles réduites pour mobile (sans casser le JavaScript) */
+        /* infobulles (Tooltips) sur mobile */
     .map-tooltip {
-      width: 220px !important; /* Largeur fixe adaptée aux petits écrans */
-      min-width: 200px !important;
-      white-space: normal !important; /* Force le texte à aller à la ligne s'il est trop long */
-      padding: 10px !important; /* Marges réduites */
+      /* On écrase le positionnement JavaScript (qui suit la souris) */
+      top: auto !important; 
+      left: 60% !important;
+      bottom: 20px !important;
+      transform: translateX(-50%) !important;
+      
+      /* On lui donne une bonne largeur et on l'empêche de déborder */
+      width: calc(100% - 32px) !important; 
+      min-width: auto;
+      max-width: 400px;
+      
+      /* On augmente un peu la taille du texte pour la lisibilité */
+      font-size: 14px;
+      padding: 16px 20px;
     }
-    .tt-row { margin-bottom: 2px; }
-    .tt-stats { margin-top: 4px; padding-top: 4px; }
+    
+    .tt-header { font-size: 17px; }
+    .tt-region { font-size: 10px; margin-bottom: 12px; }
+    .tt-winner { font-size: 14px; }
+    .tt-row { font-size: 13px; margin-bottom: 8px; }
+    .tt-stats { font-size: 12px; gap: 6px; }
 
 
 </style>
