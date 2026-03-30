@@ -66,6 +66,31 @@
   input[type=range].dual::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid var(--bg); cursor: pointer; box-shadow: 0 0 5px rgba(0,0,0,0.8); }
   input[type=range].dual:active::-webkit-slider-thumb { transform: scale(1.2); }
 
+/* Menu Utilisateur (Dropdown) */
+  .user-menu-container { position: relative; display: flex; align-items: center; }
+  .user-icon-btn { background: var(--surface2); border: 1px solid var(--border); cursor: pointer; padding: 8px; border-radius: 50%; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+  .user-icon-btn:hover { background: var(--accent); border-color: var(--accent); }
+  .user-icon-btn:hover svg { fill: #111; }
+  
+  .user-dropdown { display: none; position: absolute; right: 0; top: 100%; margin-top: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; width: 260px; z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,0.8); }
+  .user-dropdown.show { display: flex; flex-direction: column; gap: 12px; }
+
+/* Crayon de modification minimaliste (Gris) */
+  .edit-pseudo-btn { 
+    background: transparent; 
+    border: none; 
+    color: var(--text-dim); /* Utilise votre gris par défaut */
+    cursor: pointer; 
+    font-size: 14px; 
+    padding: 0 4px;
+    transition: color 0.2s; 
+    display: flex;
+    align-items: center;
+  }
+  .edit-pseudo-btn:hover, .edit-pseudo-btn:active { 
+    color: #ffffff; /* Devient blanc au survol */
+  }
+
   /* GRIDS */
   .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
   @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
@@ -217,20 +242,16 @@
 <body>
 <div class="container">
 
-  <header>
+ <header style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
     <div class="header-left">
       <h1>Présidentielles<br><em>2027</em></h1>
       <div class="subtitle-wrap">
         <span style="color: var(--text-dim)">s✰karot</span>
         <span style="color: var(--border)">|</span>
         <div class="social-links">
-          <a href="https://twitter.com/sakar0t" target="_blank" title="X (Twitter)">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
-          </a>
-          <a href="https://twitch.tv/sakar0t" target="_blank" title="Twitch">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
-          </a>
-          <a href="https://don.unicef.fr/urgence-gaza-sp/" target="_blank" class="flag" title="Soutenir Gaza" style="display: flex; align-items: center;">
+          <a href="https://twitter.com/sakar0t" target="_blank" title="X (Twitter)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg></a>
+          <a href="https://twitch.tv/sakar0t" target="_blank" title="Twitch"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg></a>
+<a href="https://don.unicef.fr/urgence-gaza-sp/" target="_blank" class="flag" title="Soutenir Gaza" style="display: flex; align-items: center;">
             <svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg" style="height: 16px; width: 24px; border-radius: 2px;">
               <rect width="64" height="16" fill="#000"/><rect y="16" width="64" height="16" fill="#fff"/><rect y="32" width="64" height="16" fill="#007a3d"/><polygon points="0,0 32,24 0,48" fill="#ce1126"/>
             </svg>
@@ -238,9 +259,79 @@
         </div>
       </div>
     </div>
-  </header>
 
+    <div class="user-menu-container">
+      <button class="user-icon-btn" onclick="toggleUserMenu()" title="Mon compte">
+        <svg viewBox="0 0 24 24" fill="var(--text-dim)" width="20" height="20" style="transition: fill 0.2s;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      </button>
 
+      <div id="user-dropdown" class="user-dropdown">
+        <div id="dropdown-logged-out" style="display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 12px; color: var(--text-dim);">Connectez-vous pour voter :</span>
+          <input type="email" id="email-input" placeholder="Email" style="padding: 8px; background: var(--bg); color: white; border: 1px solid var(--border); border-radius: 4px;">
+          <input type="password" id="password-input" placeholder="Mot de passe" style="padding: 8px; background: var(--bg); color: white; border: 1px solid var(--border); border-radius: 4px;">
+          <button onclick="loginUser()" class="btn-sort active">Connexion</button>
+          <button onclick="registerUser()" class="btn-sort">Créer un compte</button>
+        </div>
+
+       <div id="dropdown-logged-in" style="display: none; flex-direction: column; gap: 12px;">
+          <div style="text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <span style="font-size: 11px; color: var(--text-dim);">Connecté en tant que</span>
+            
+            <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <strong id="dropdown-username" style="color: white; font-size: 14px;"></strong>
+              <button class="edit-pseudo-btn" onclick="editUsernamePrompt()" title="Modifier le pseudo">✎</button>
+            </div>
+            
+          </div>
+          <button onclick="logoutUser()" class="btn-sort">Déconnexion</button>
+        </div>
+      </div>
+    </div>
+ </header>
+
+  <div class="vote-panel" style="margin-bottom: 32px; padding: 16px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px;">
+    
+    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; flex: 1;">
+      <div id="voter-profile-view" style="display: none; align-items: center; gap: 12px;">
+        <div class="username-container">
+          <strong id="user-display-name" style="font-size: 15px;"></strong>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border);">
+          <span id="user-badge" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: transparent;"></span>
+          <span id="user-vote-text" style="font-size: 11px; font-family: 'Space Mono', monospace;">Aucun vote</span>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <select id="vote-selector" class="btn-sort" style="background: var(--surface2); padding: 8px 12px; font-size: 13px; font-weight: bold; color: #fff;">
+          <option value="" style="color: var(--text-dim);">-- Choisissez un candidat --</option>
+          <option value="LO" style="color: #7a1020; font-weight: bold;">Arthaud (LO)</option>
+          <option value="PCF" style="color: #9b1010; font-weight: bold;">Roussel (PCF)</option>
+          <option value="LFI" style="color: #c0001a; font-weight: bold;">Mélenchon (LFI)</option>
+          <option value="EELV" style="color: #2ea05a; font-weight: bold;">Tondelier (Écolos)</option>
+          <option value="PS" style="color: #e07080; font-weight: bold;">Glucksmann (PS)</option>
+          <option value="REN" style="color: #f0c030; font-weight: bold;">Attal (REN)</option>
+          <option value="HZ" style="color: #70c8f8; font-weight: bold;">Philippe (HZ)</option>
+          <option value="LR" style="color: #2c75ff; font-weight: bold;">Retailleau (LR)</option>
+          <option value="DF" style="color: #003870; font-weight: bold;">Dupont-Aignan (DLF)</option>
+          <option value="RN" style="color: #0d3890; font-weight: bold;">Le Pen (RN)</option>
+          <option value="RQ" style="color: #aaaaaa; font-weight: bold;">Zemmour (RQ)</option>
+        </select>
+        <button onclick="handleVoteClick()" class="btn-sort active" style="font-weight: bold; padding: 8px 16px;">Voter</button>
+      </div>
+    </div>
+
+   <div style="text-align: right; border-left: 1px solid var(--border); padding-left: 20px; min-width: 200px;">
+      <div style="margin-bottom: 8px;">
+        <span style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Votes réels</span><br>
+        <strong id="community-counter" style="font-family: 'Space Mono', monospace; color: var(--accent); font-size: 20px; line-height: 1;">0</strong>
+      </div>
+      
+      <div id="community-leaderboard" style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; padding-right: 4px;">
+        <span style="font-size: 11px; color: var(--text-dim); font-style: italic;">Aucun vote pour l'instant...</span>
+      </div>
+    </div>
   <div class="controls-panel">
     <div class="controls-header">
       <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
@@ -556,21 +647,53 @@ let chartBar, chartDonut;
 
 // =================== GESTION LOGIQUE ===================
 function computeFirstRoundScores() {
-  const scores = {...BASE_NATIONAL_SCORES}; 
-  const macronBase = scores.REN + scores.HZ;
-  scores.REN = 0; scores.HZ = 0;
+  // 1. Calculer les pourcentages de base du modèle (avec transferts Centre)
+  const baseScores = {...BASE_NATIONAL_SCORES};
+  const macronBase = baseScores.REN + baseScores.HZ;
+  baseScores.REN = 0; baseScores.HZ = 0;
+  
   if (currentCenterCandidate === 'Attal') {
-    scores.REN = macronBase * 0.30;
-    scores.PS += macronBase * 0.40;
-    scores.LR += macronBase * 0.10;
+    baseScores.REN = macronBase * 0.30;
+    baseScores.PS += macronBase * 0.40;
+    baseScores.LR += macronBase * 0.10;
   } else if (currentCenterCandidate === 'Philippe') {
-    scores.HZ = macronBase * 0.60;
-    scores.PS += macronBase * 0.35;
-    scores.LR += macronBase * 0.05;
+    baseScores.HZ = macronBase * 0.60;
+    baseScores.PS += macronBase * 0.35;
+    baseScores.LR += macronBase * 0.05;
   }
-  const total = Object.values(scores).reduce((a, b) => a + b, 0);
-  for (const party in scores) scores[party] = (scores[party] / total) * 100;
-  return scores;
+
+  // Normaliser les scores de base pour s'assurer que la somme fait 100%
+  const totalBase = Object.values(baseScores).reduce((a, b) => a + b, 0);
+  for (const party in baseScores) {
+    baseScores[party] = (baseScores[party] / totalBase) * 100;
+  }
+
+  // 2. CALCUL DU REMPLACEMENT EXACT (1 vraie voix = 1 voix simulée retirée)
+  const TOTAL_VOTES = TOTAL_EXPRIMES_T1; // Les ~35 millions de suffrages exprimés
+  
+  let communityTotal = 0;
+  if (typeof communityVotes !== 'undefined') {
+    communityTotal = Object.values(communityVotes).reduce((a, b) => a + b, 0);
+  }
+
+  // Le modèle mathématique ne s'applique plus qu'aux voix "restantes" (Total - Votes réels)
+  const modelVotes = Math.max(0, TOTAL_VOTES - communityTotal);
+
+  const finalScores = {};
+  for (const party in baseScores) {
+    // Voix attribuées par le modèle : (Pourcentage du modèle / 100) * Voix restantes
+    let partyVotes = (baseScores[party] / 100) * modelVotes;
+    
+    // On ajoute les VRAIES voix uniques de la base de données Firebase
+    if (typeof communityVotes !== 'undefined' && communityVotes[party]) {
+      partyVotes += communityVotes[party];
+    }
+
+    // On reconvertit en pourcentage pur pour l'affichage dans les graphiques
+    finalScores[party] = (partyVotes / TOTAL_VOTES) * 100;
+  }
+
+  return finalScores;
 }
 
 function getCurrentOrder() {
@@ -1189,6 +1312,193 @@ function update() {
 }
 
 buildSliders(); initCharts(); initMaps(); update();
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+<script>
+ 
+const firebaseConfig = {
+  apiKey: "AIzaSyBMz6caS9wr5IxwEzaUhlidys0qY1ieNuU",
+  authDomain: "presidentielle-2027.firebaseapp.com",
+  projectId: "presidentielle-2027",
+  storageBucket: "presidentielle-2027.firebasestorage.app",
+  messagingSenderId: "164139653756",
+  appId: "1:164139653756:web:2668f241f2bc593f57c7f9",
+  measurementId: "G-WGYEMZ3X6K"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null;
+let communityVotes = { LO:0, PCF:0, LFI:0, EELV:0, PS:0, REN:0, HZ:0, LR:0, DF:0, RN:0, RQ:0 };
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('dropdown-logged-out').style.display = 'none';
+    document.getElementById('dropdown-logged-in').style.display = 'flex';
+    document.getElementById('voter-profile-view').style.display = 'flex'; // Affiche le pseudo et le crayon
+    
+    const pseudo = user.displayName || user.email.split('@')[0];
+    document.getElementById('user-display-name').innerText = pseudo;
+    document.getElementById('dropdown-username').innerText = pseudo;
+    
+    fetchMyVote();
+  } else {
+    document.getElementById('dropdown-logged-out').style.display = 'flex';
+    document.getElementById('dropdown-logged-in').style.display = 'none';
+    document.getElementById('voter-profile-view').style.display = 'none'; // Cache le pseudo et le crayon
+    document.getElementById('user-dropdown').classList.remove('show');
+  }
+});
+
+// Affiche / Masque le menu déroulant
+function toggleUserMenu() {
+  document.getElementById('user-dropdown').classList.toggle('show');
+}
+
+// Fonction appelée quand on clique sur le petit crayon ✏️
+function editUsernamePrompt() {
+  if (!currentUser) return;
+  const currentName = document.getElementById('user-display-name').innerText;
+  const newName = prompt("Entrez votre nouveau pseudo :", currentName);
+  
+  if (newName !== null && newName.trim() !== "") {
+    currentUser.updateProfile({ displayName: newName.trim() }).then(() => {
+      document.getElementById('user-display-name').innerText = newName.trim();
+      document.getElementById('dropdown-username').innerText = newName.trim();
+      alert("Pseudo mis à jour !");
+    }).catch(err => alert("Erreur : " + err.message));
+  }
+}
+
+function updateUsername() {
+  if (!currentUser) return;
+  const newName = document.getElementById('username-input').value.trim();
+  if (!newName) return alert("Veuillez entrer un pseudo valide.");
+  
+  // Fonction Firebase pour mettre à jour le profil
+  currentUser.updateProfile({
+    displayName: newName
+  }).then(() => {
+    document.getElementById('user-display-name').innerText = newName;
+    document.getElementById('username-input').value = ""; // Vide le champ
+    alert("Votre pseudo a bien été mis à jour !");
+  }).catch(err => alert("Erreur lors de la mise à jour : " + err.message));
+}
+
+function registerUser() {
+  const email = document.getElementById('email-input').value;
+  const pass = document.getElementById('password-input').value;
+  if(!email || !pass) return alert("Veuillez remplir l'email et le mot de passe.");
+  auth.createUserWithEmailAndPassword(email, pass).then(() => {
+    alert("Compte créé avec succès ! Vous pouvez maintenant voter.");
+  }).catch(err => alert("Erreur : " + err.message));
+}
+
+function loginUser() {
+  const email = document.getElementById('email-input').value;
+  const pass = document.getElementById('password-input').value;
+  if(!email || !pass) return alert("Veuillez remplir l'email et le mot de passe.");
+  auth.signInWithEmailAndPassword(email, pass).catch(err => alert("Erreur : " + err.message));
+}
+
+function logoutUser() { 
+  auth.signOut(); 
+  document.getElementById('vote-selector').value = ""; // Réinitialise le select
+}
+
+function handleVoteClick() {
+  if (!currentUser) {
+    alert("Veuillez vous connecter ou créer un compte (juste en dessous) pour valider votre vote !");
+    document.getElementById('email-input').focus();
+    return;
+  }
+  const parti = document.getElementById('vote-selector').value;
+  if (!parti) return alert("Veuillez choisir un candidat dans la liste.");
+
+  // Enregistre le vote sur Firebase
+  db.collection("votes").doc(currentUser.uid).set({
+    parti: parti,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    alert("Votre vote a bien été enregistré !");
+  }).catch(err => alert("Erreur lors du vote : " + err.message));
+}
+
+// Récupère et affiche le badge de l'utilisateur
+function fetchMyVote() {
+  db.collection("votes").doc(currentUser.uid).onSnapshot(doc => {
+    if (doc.exists) {
+      const monVote = doc.data().parti;
+      document.getElementById('vote-selector').value = monVote;
+      
+      // Met à jour le badge visuel
+      document.getElementById('user-badge').style.background = COULEURS[monVote] || '#666';
+      document.getElementById('user-vote-text').innerText = CANDIDATS[monVote] || monVote;
+      document.getElementById('user-vote-text').style.color = COULEURS[monVote] || '#fff';
+    }
+  });
+}
+
+db.collection("votes").onSnapshot(snapshot => {
+  communityVotes = { LO:0, PCF:0, LFI:0, EELV:0, PS:0, REN:0, HZ:0, LR:0, DF:0, RN:0, RQ:0 };
+  let totalCommunity = 0; 
+  
+  // Comptage
+  snapshot.forEach(doc => {
+    const parti = doc.data().parti;
+    if (communityVotes[parti] !== undefined) {
+      communityVotes[parti]++;
+      totalCommunity++; 
+    }
+  });
+  
+  // Met à jour le compteur global
+  document.getElementById('community-counter').innerText = totalCommunity.toLocaleString('fr-FR');
+  
+  // Création du classement
+  const leaderboardEl = document.getElementById('community-leaderboard');
+  leaderboardEl.innerHTML = ''; // On vide l'ancien classement
+
+  if (totalCommunity === 0) {
+    leaderboardEl.innerHTML = `<span style="font-size: 11px; color: var(--text-dim); font-style: italic;">Aucun vote pour l'instant...</span>`;
+  } else {
+    // Transformer l'objet en tableau, filtrer ceux à 0 vote, et trier par score décroissant
+    const sortedVotes = Object.entries(communityVotes)
+      .filter(([parti, votes]) => votes > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    // Générer l'HTML pour chaque candidat
+    sortedVotes.forEach(([parti, votes]) => {
+      const pct = ((votes / totalCommunity) * 100).toFixed(1);
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.justifyContent = 'flex-end';
+      row.style.gap = '8px';
+      row.style.fontSize = '12px';
+      
+      row.innerHTML = `
+        <span style="font-family: 'Space Mono', monospace; opacity: 0.7; font-size: 10px;">${pct}%</span>
+        <span style="font-weight: bold; width: 35px; text-align: right; color: ${COULEURS[parti] || '#fff'}">${parti}</span>
+        <div style="width: 60px; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; display: flex;">
+          <div style="width: ${pct}%; background: ${COULEURS[parti] || '#fff'}; height: 100%;"></div>
+        </div>
+      `;
+      leaderboardEl.appendChild(row);
+    });
+  }
+  
+  // Force la mise à jour des grands graphiques si nécessaire
+  if(typeof update === "function") update(); 
+});
 </script>
 </body>
 </html>
