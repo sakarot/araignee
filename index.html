@@ -55,21 +55,10 @@
     }
 }
 
-body.light-mode {
-    /* Un bleu-gris très clair, subtil mélange de blanc et de ton accent #778DA9 */
-    --bg: #E5ECF4; 
-    --surface: #F1F5F9; 
-    --surface2: #F1F5F9;
-    --border: rgba(119, 141, 169, 0.25); 
-    --text: #0D1B2A; 
-    --text-dim: #415A77; 
-    --accent: #778DA9; /* On garde ton accent d'origine */
-}
-
 html.light-mode, body.light-mode {
     --bg: #E5ECF4; 
     --surface: #F1F5F9; 
-    --surface2: #D9E2EC;
+    --surface2: #F1F5F9;
     --border: rgba(119, 141, 169, 0.25); 
     --text: #0D1B2A; 
     --text-dim: #415A77; 
@@ -127,18 +116,10 @@ body.light-mode .logo-wrapper svg circle[r="4"] {
     fill: #1B263B !important; 
 }
 
-/* On s'assure que le titre principal est bien sombre en mode clair */
-body.light-mode .title-block h1 {
-    color: var(--text) !important;
-}
-
 body.light-mode .title-block h1,
 body.light-mode .chat-header,
-body.light-mode .post-pseudo,
 body.light-mode .post-body,
 body.light-mode .tt-stats-val,
-body.light-mode #dropdown-username,
-body.light-mode #user-display-name,
 body.light-mode .tt-header,
 body.light-mode .t2-bar-left,
 body.light-mode .t2-bar-right,
@@ -146,6 +127,28 @@ body.light-mode .poll-tooltip,
 body.light-mode .map-tooltip {
     color: var(--text) !important;
 }
+
+/* --- GESTION DES PSEUDOS (Couleurs des partis conservées) --- */
+/* Par défaut, s'il n'y a pas de parti, le pseudo est sombre en mode clair */
+body.light-mode .post-pseudo,
+body.light-mode #dropdown-username,
+body.light-mode #user-display-name {
+    color: var(--text);
+}
+
+/* On réaffirme les couleurs des partis pour qu'elles ne soient pas écrasées */
+body.light-mode .post-pseudo.p-LO { color: #ffcccc; }
+body.light-mode .post-pseudo.p-PCF { color: #ffb3b3; }
+body.light-mode .post-pseudo.p-LFI { color: var(--LFI); }
+body.light-mode .post-pseudo.p-EELV { color: var(--EELV); }
+body.light-mode .post-pseudo.p-PS { color: var(--PS); }
+body.light-mode .post-pseudo.p-REN { color: var(--REN); }
+body.light-mode .post-pseudo.p-HZ { color: var(--HZ); }
+body.light-mode .post-pseudo.p-LR { color: var(--LR); }
+body.light-mode .post-pseudo.p-DLF { color: var(--DF); }
+body.light-mode .post-pseudo.p-RN { color: var(--RN); }
+body.light-mode .post-pseudo.p-RQ { color: var(--RQ); }
+
 
 body.light-mode input,
 body.light-mode textarea,
@@ -214,6 +217,19 @@ body.light-mode .action-btn svg,
 body.light-mode .delete-btn svg {
     fill: currentColor !important;
 }
+
+body.light-mode .community-footer,
+body.light-mode .sticky-chat-footer {
+    box-shadow: 0 -4px 30px rgba(119, 141, 169, 0.15) !important;
+}
+
+/* Sur mobile, on adoucit aussi la barre de navigation du bas si elle a une ombre */
+@media (max-width: 768px) {
+    body.light-mode .bottom-nav {
+        box-shadow: 0 -2px 15px rgba(119, 141, 169, 0.1) !important;
+    }
+}
+
 
 
  .bottom-nav {
@@ -926,7 +942,7 @@ document.documentElement.classList.add('light-mode');
               <div style="text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
                 <span style="font-size: 11px; color: var(--text-dim);">Connecté en tant que</span>
                 <div id="inline-edit-container" style="display: flex; align-items: center; justify-content: center; gap: 6px; height: 26px;">
-                  <strong id="dropdown-username" style="color: var(--text); font-size: 14px;"></strong>
+                  <strong id="dropdown-username" style="font-size: 14px;"></strong>
                   <button id="btn-edit-inline" class="edit-pseudo-btn" onclick="startInlineEdit()" title="Modifier le pseudo">✎</button>
                   <input type="text" id="inline-pseudo-input" style="display: none; padding: 2px 6px; background: var(--surface2); color: var(--text); border: 1px solid var(--accent); border-radius: 4px; font-size: 13px; width: 130px; text-align: center;">
                   <button id="btn-save-inline" class="btn-sort" style="display: none; padding: 2px 8px; font-size: 11px; height: 24px;" onclick="confirmInlineEdit()">OK</button>
@@ -945,7 +961,7 @@ document.documentElement.classList.add('light-mode');
           <div id="voter-profile-view" style="display: none; align-items: center; gap: 12px;">
             <div class="username-container" style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);">
               <span id="user-badge" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: transparent; transition: background 0.3s;"></span>
-              <strong id="user-display-name" style="font-size: 15px; color: var(--text); transition: color 0.3s;"></strong>
+              <strong id="user-display-name" style="font-size: 15px; transition: color 0.3s;"></strong>
             </div>
           </div>
           
@@ -2272,7 +2288,7 @@ function logoutUser() {
   auth.signOut(); 
   document.getElementById('vote-selector').value = ""; 
   document.getElementById('user-badge').style.background = 'transparent';
-  document.getElementById('user-display-name').style.color = 'var(--text)';
+  document.getElementById('user-display-name').style.color = '';
   document.body.classList.remove('sidebar-closed');
   const sBtn = document.getElementById('sidebarToggleBtn');
   if (sBtn) {
@@ -2316,7 +2332,7 @@ function fetchMyVote() {
     } else {
       document.getElementById('vote-selector').value = "";
       document.getElementById('user-badge').style.background = 'transparent';
-      document.getElementById('user-display-name').style.color = 'var(--text)';
+      document.getElementById('user-display-name').style.color = '';
     }
   });
 }
