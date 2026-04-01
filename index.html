@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>L'Araignée</title>
+<link rel="icon" id="dynamic-favicon" type="image/svg+xml" href="">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -65,18 +66,32 @@ body.light-mode {
     --accent: #778DA9; /* On garde ton accent d'origine */
 }
 
-body.light-mode::-webkit-scrollbar-track {
+html.light-mode, body.light-mode {
+    --bg: #E5ECF4; 
+    --surface: #F1F5F9; 
+    --surface2: #D9E2EC;
+    --border: rgba(119, 141, 169, 0.25); 
+    --text: #0D1B2A; 
+    --text-dim: #415A77; 
+    --accent: #778DA9; 
+}
+
+/* --- SCROLLBAR MODE CLAIR --- */
+/* Pour Firefox (qui gère la scrollbar directement sur la balise html) */
+html.light-mode {
+    scrollbar-color: rgba(119, 141, 169, 0.6) var(--bg);
+}
+
+html.light-mode::-webkit-scrollbar-track {
     background: var(--bg);
 }
-body.light-mode::-webkit-scrollbar-thumb {
-    background: rgba(119, 141, 169, 0.6); /* Couleur accent légèrement transparente */
+html.light-mode::-webkit-scrollbar-thumb {
+    background: rgba(119, 141, 169, 0.6);
     border: 2px solid var(--bg);
 }
-body.light-mode::-webkit-scrollbar-thumb:hover {
+html.light-mode::-webkit-scrollbar-thumb:hover {
     background: var(--text-dim);
 }
-
-
 
 /* --- OVERRIDES POUR LE MODE CLAIR --- */
 body.light-mode input[type=range].dual {
@@ -831,6 +846,7 @@ body.light-mode .delete-btn svg {
 
   if (localStorage.getItem('site-theme') === 'light') {
     document.body.classList.add('light-mode');
+document.documentElement.classList.add('light-mode');
   }
 
 </script>
@@ -876,9 +892,13 @@ body.light-mode .delete-btn svg {
                   <a href="https://twitter.com/sakar0t" target="_blank" title="X (Twitter)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg></a>
                   <a href="https://twitch.tv/sakar0t" target="_blank" title="Twitch"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg></a>
                   <a href="https://don.unicef.fr/urgence-gaza-sp/" target="_blank" class="flag" title="Soutenir Gaza" style="display: flex; align-items: center;">
-                    <svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg" style="height: 16px; width: 24px; border-radius: 2px;">
-                      <rect width="64" height="16" fill="#000"/><rect y="16" width="64" height="16" fill="var(--text)"/><rect y="32" width="64" height="16" fill="#007a3d"/><polygon points="0,0 32,24 0,48" fill="#ce1126"/>
-                    </svg>
+                    <svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg" style="height: 16px; width: 24px; border-radius: 2px; overflow: hidden;">
+  <rect width="64" height="16" fill="#000"/>
+  <rect y="16" width="64" height="16" fill="#fff"/>
+  <rect y="32" width="64" height="16" fill="#007a3d"/>
+  <polygon points="-1,-1 33,24 -1,49" fill="#ce1126"/>
+</svg>
+
                   </a>
              </div>
          </div>
@@ -3503,7 +3523,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function toggleTheme() {
     const isLight = document.body.classList.toggle('light-mode');
-    document.documentElement.classList.toggle('light-mode', isLight); // Ajout pour la scrollbar Firefox
+    // TRÈS IMPORTANT pour la barre de scroll : on l'applique aussi à <html>
+    document.documentElement.classList.toggle('light-mode', isLight); 
     
     localStorage.setItem('site-theme', isLight ? 'light' : 'dark');
     updateThemeIcons(isLight);
@@ -3515,17 +3536,49 @@ function toggleTheme() {
     updateChartsTheme(isLight);
 }
 
+function updateFavicon(isLight) {
+    const favicon = document.getElementById('dynamic-favicon');
+    if (!favicon) return;
+
+    // Mode Sombre (défaut) : Araignée blanche, yeux bleus
+    // Mode Clair : Araignée bleue, yeux blancs
+    const spiderColor = isLight ? '#FFFFFF' : '#1B263B';
+    const eyeColor = isLight ? '#1B263B' : '#FFFFFF';
+
+    // On reprend exactement ton SVG mais sans la ligne du <circle> de fond
+    const svg = `
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'>
+            <path d='M35 38 Q20 28 12 18' stroke='${spiderColor}' stroke-width='7' stroke-linecap='round'/>
+            <path d='M34 50 Q18 47 10 40' stroke='${spiderColor}' stroke-width='7' stroke-linecap='round'/>
+            <path d='M34 63 Q20 63 12 73' stroke='${spiderColor}' stroke-width='7' stroke-linecap='round'/>
+            <path d='M40 73 Q32 82 29 90' stroke='${spiderColor}' stroke-width='7' stroke-linecap='round'/>
+            <path d='M65 38 Q80 28 88 18' stroke='${spiderColor}' stroke-width='7' stroke-linecap='round'/>
+            <path d='M66 50 Q82 47 90 40' stroke='${spiderColor}' stroke-width='7' stroke-linecap='round'/>
+            <path d='M66 63 Q80 63 88 73' stroke='${spiderColor}' stroke-width='7' stroke-linecap='round'/>
+            <path d='M60 73 Q68 82 71 90' stroke='${spiderColor}' stroke-width='7' stroke-linecap='round'/>
+            <ellipse cx='50' cy='38' rx='20' ry='22' fill='${spiderColor}'/>
+            <ellipse cx='50' cy='65' rx='15' ry='16' fill='${spiderColor}'/>
+            <circle cx='44' cy='67' r='4' fill='${eyeColor}'/>
+            <circle cx='56' cy='67' r='4' fill='${eyeColor}'/>
+        </svg>
+    `;
+
+    // On encode le SVG pour qu'il soit lisible dans l'URL (Data URI)
+    favicon.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.trim());
+}
+
 function updateThemeIcons(isLight) {
-    // Gestion des icônes
+    // Gestion des icônes Soleil/Lune
     document.getElementById('icon-sun').style.display = isLight ? 'none' : 'block';
     document.getElementById('icon-moon').style.display = isLight ? 'block' : 'none';
     
     // Mise à jour du texte de l'infobulle (attribut title)
     const themeBtn = document.getElementById('theme-toggle');
     if (themeBtn) {
-        // Si on est en clair, le bouton permet de passer en sombre, et inversement
         themeBtn.title = isLight ? "Mode Sombre" : "Mode Clair";
     }
+
+    updateFavicon(isLight);
 }
 
 // Actualisation dynamique de Chart.js
