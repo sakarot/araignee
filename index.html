@@ -4000,8 +4000,8 @@ function buildCommentNodeHtml(c, allComments, isRoot, focusPath = [], focusId = 
       <div class="post-header" style="margin-bottom: 4px;">
         <div style="display:flex; align-items:center; flex-wrap: wrap;">
             <span class="post-pseudo ${pc}" style="cursor:pointer;" onclick="event.stopPropagation(); openUserProfile('${c.pseudo}')">${c.pseudo}</span>
+			${deleteBtnHtml}
             ${replyIndicator}
-            ${deleteBtnHtml}
         </div>
         <span class="post-time">${getRelativeTime(c.timestamp)}</span>
       </div>
