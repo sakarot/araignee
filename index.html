@@ -248,6 +248,62 @@ body.light-mode .sticky-chat-footer {
 .bottom-nav button.active svg { filter: drop-shadow(0 0 6px rgba(119,141,169,0.8)); }
 .bottom-nav button svg { fill: currentColor; width: 22px; height: 22px; transition: filter 0.2s; }
 
+.comment-thread-nested {
+    margin-top: 8px;
+    margin-left: 12px;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: calc(100% - 12px); /* Empêche de déborder de l'écran */
+    box-sizing: border-box;
+    font-size: 0.95em; /* Réduit proportionnellement la taille des enfants à chaque niveau */
+}
+
+.comment-card, .nested-card {
+    box-sizing: border-box;
+    width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    transition: transform 0.2s, background 0.2s;
+    cursor: pointer;
+}
+
+.nested-card {
+    background: rgba(255,255,255,0.01);
+    border-radius: 6px;
+    padding: 8px;
+    border: 1px solid rgba(255,255,255,0.02);
+}
+
+.post-actions {
+    flex-wrap: wrap; 
+}
+
+.expanded-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 9998;
+    display: none;
+}
+.expanded-overlay.show { display: block; }
+
+.focused-thread {
+    font-size: 14px !important; /* Réinitialise la cascade de réduction ! */
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-left: 2px solid var(--accent) !important;
+    padding: 10px !important;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.comment-thread-nested {
+    font-size: 0.95em !important; /* Les enfants directs retrouvent une taille lisible */
+}
+
 @media (max-width: 1024px) {
   .bottom-nav { display: flex; }
   .community-sidebar { display: none !important; width: 100%; border-left: none; }
@@ -411,7 +467,7 @@ body.light-mode .sticky-chat-footer {
   .tt-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-family: 'Space Mono', monospace; font-size: 11px; align-items: center; }
   .tt-row-left { display: flex; align-items: center; gap: 8px; }
   .tt-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .tt-stats { margin-top: 8px; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 70%, transparent); display:flex; flex-direction:column; gap:4px; font-family: 'Space Mono', monospace; font-size:10px; color: var(--text-dim); }
+  .tt-stats { margin-top: 8px; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); display:flex; flex-direction:column; gap:4px; font-family: 'Space Mono', monospace; font-size:10px; color: var(--text-dim); }
   .tt-stats-val { color: var(--text); }
 
   /* DROM COM */
@@ -512,7 +568,7 @@ body.light-mode .sticky-chat-footer {
   .post-time { color: var(--text-dim); font-family: 'Space Mono', monospace; font-size: 9px; }
   .post-body { font-size: 13px; margin-bottom: 12px; word-break: break-word; line-height: 1.4; color: #ccc; }
   .post-img { max-width: 100%; border-radius: 6px; margin-top: 8px; max-height: 200px; object-fit: cover; }
-  .post-actions { display: flex; gap: 16px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 70%, transparent); padding-top: 8px; }
+  .post-actions { display: flex; gap: 16px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); padding-top: 8px; }
   .action-btn { background: transparent; border: none; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 11px; transition: all 0.2s; font-family: 'Space Mono', monospace; }
   .action-btn:hover { color: var(--text); }
   .action-btn.active-like { color: var(--EELV); }
@@ -635,13 +691,13 @@ body.light-mode .sticky-chat-footer {
   .hashtag-bar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
   .hashtag-bar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
 
-  .chat-input-area { padding: 12px 16px 16px 16px; background: transparent; display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 70%, transparent); }
+  .chat-input-area { padding: 12px 16px 16px 16px; background: transparent; display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); }
   .chat-input-area textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px; font-family: 'DM Sans', sans-serif; resize: none; height: 60px; font-size: 13px; }
   
   .hashtag-pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: bold; font-family: 'Space Mono', monospace; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; }
   .hashtag-count { background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 10px; font-size: 9px; }
   
-  .hashtag-link { color: var(--text-dim); cursor: pointer; font-weight: bold; font-family: 'Space Mono', monospace; transition: all 0.2s; }
+  .hashtag-link { color: var(--text); cursor: pointer; font-weight: bold; font-family: 'Space Mono', monospace; transition: all 0.2s; }
   .hashtag-link.h-LO:hover { color: #ffcccc; text-shadow: 0 0 8px rgba(255,204,204,0.4); }
   .hashtag-link.h-PCF:hover { color: #ffb3b3; text-shadow: 0 0 8px rgba(255,179,179,0.4); }
   .hashtag-link.h-LFI:hover { color: var(--LFI); text-shadow: 0 0 8px var(--LFI); }
@@ -682,7 +738,7 @@ body.light-mode .sticky-chat-footer {
   @font-face { font-family: "Choplin"; src: url("choplin-semi-bold.otf") format("opentype"); font-weight: semi-bold; }
  
   /* --- SONDAGES --- */
-  .poll-creator { display: none; flex-direction: column; gap: 8px; margin-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 70%, transparent); padding-top: 8px; }
+  .poll-creator { display: none; flex-direction: column; gap: 8px; margin-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); padding-top: 8px; }
   .poll-option-input-wrap { display: flex; gap: 6px; align-items: center; }
   .poll-option-input-wrap input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 4px; padding: 6px; font-size: 11px; }
   .poll-color-btn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; flex-shrink: 0; }
@@ -851,9 +907,9 @@ body.light-mode .sticky-chat-footer {
     document.body.classList.add('sidebar-closed');
   }
 
-  if (localStorage.getItem('site-theme') === 'light') {
+    if (localStorage.getItem('theme') === 'light') {
     document.body.classList.add('light-mode');
-document.documentElement.classList.add('light-mode');
+    document.documentElement.classList.add('light-mode');
   }
 
 </script>
@@ -2038,8 +2094,10 @@ let communityVotes = { LO:0, PCF:0, LFI:0, EELV:0, PS:0, REN:0, HZ:0, LR:0, DF:0
 window.myFriendsList = [];
 window.currentFriendFilter = null; 
 window.allPosts = [];
+window.openThreads = window.openThreads || {}; 
 window.currentHashtagFilter = null; 
-
+window.postComments = {}; // Garde en mémoire tous les commentaires d'un post
+window.focusedCommentId = {}; // Garde en mémoire quel commentaire est actuellement le "nouveau point de départ"
 window.commentListeners = {};
 window.commentCache = {};
 window.openComments = {}; 
@@ -2048,6 +2106,7 @@ window.currentReplyTarget = {};
 let selectedGifs = {}; 
 let gifSearchTimeout = null;
 
+const ICON_REPLIES = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"> <path d="M12 3C7.03 3 3 6.36 3 10.5c0 2.31 1.31 4.38 3.38 5.68L5 21l4.35-1.4c.8.23 1.66.35 2.65.35  4.97 0 9-3.36 9-7.5S16.97 3 12 3z"/> </svg>`;
 const ICON_LIKE = `<svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>`;
 const ICON_DISLIKE = `<svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>`;
 const ICON_COMMENT = `<svg viewBox="0 0 24 24"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 6V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z"/></svg>`;
@@ -2059,7 +2118,47 @@ const VALID_HASHTAGS = ['LO','PCF','LFI','EELV','PS','REN','HZ','LR','DF','RN','
 
 auth.onAuthStateChanged(user => {
   currentUser = user;
+  
   if (user) {
+    // On charge TOUTES les préférences de l'utilisateur en une seule requête
+    db.collection("user_prefs").doc(user.uid).get().then(doc => {
+      if (doc.exists) {
+        const prefs = doc.data();
+        
+        // 1. Application du Thème
+        if (prefs.theme) {
+            applyTheme(prefs.theme);
+        } else {
+            applyTheme('dark'); // Si pas de thème enregistré, sombre par défaut
+        }
+
+        // 2. Application de la Sidebar
+        if (prefs.sidebarClosed) {
+          document.body.classList.add('sidebar-closed');
+          const sBtn = document.getElementById('sidebarToggleBtn');
+          if (sBtn) {
+            sBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>';
+            sBtn.title = "Ouvrir le fil";
+          }
+        }
+
+        // 3. Application des Hashtags
+        if (prefs.hashtagOpen) {
+          const hBar = document.getElementById('hashtag-bar');
+          const hBtn = document.getElementById('hashtagToggleBtn');
+          if (hBar) hBar.classList.remove('closed');
+          if (hBtn) {
+            hBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>';
+            hBtn.title = "Masquer les tendances";
+          }
+        }
+      } else {
+        // Nouveau compte = pas encore de doc de prefs = thème par défaut
+        applyTheme('dark');
+      }
+    });
+
+    // Reste de l'interface quand on est connecté (chat affiché, pseudos, etc)
     document.getElementById('chat-auth-msg').style.display = 'none';
     document.getElementById('chat-form').style.display = 'flex';
     document.getElementById('dropdown-logged-out').style.display = 'none';
@@ -2071,12 +2170,18 @@ auth.onAuthStateChanged(user => {
 
     db.collection("usernames").doc(lowerName).get().then(doc => {
       if (!doc.exists) {
-         db.collection("usernames").doc(lowerName).set({ uid: user.uid });
+         // CORRECTION 1 : On ajoute l'email à la création du pseudo
+         db.collection("usernames").doc(lowerName).set({ uid: user.uid, email: user.email });
       } else if (doc.data().uid !== user.uid) {
          pseudo = pseudo + Math.floor(Math.random() * 1000);
          user.updateProfile({ displayName: pseudo });
-         db.collection("usernames").doc(pseudo.toLowerCase()).set({ uid: user.uid });
+         // CORRECTION 2 : On ajoute l'email si on génère un pseudo alternatif
+         db.collection("usernames").doc(pseudo.toLowerCase()).set({ uid: user.uid, email: user.email });
+      } else if (!doc.data().email) {
+         // CORRECTION 3 : Si le document existe mais n'a pas l'email (les anciens comptes buggés), on le répare
+         db.collection("usernames").doc(lowerName).update({ email: user.email });
       }
+      
       document.getElementById('user-display-name').innerText = pseudo;
       document.getElementById('dropdown-username').innerText = pseudo;
     });
@@ -2274,13 +2379,24 @@ function showMsg(elementId, text, color) {
   el.innerText = text;
 }
 
-function logoutUser() { 
+function logoutUser() {
   if (myVoteListener) { myVoteListener(); myVoteListener = null; }
+  
+  // 1. On supprime le stockage local et on remet l'interface en sombre instantanément
+  //localStorage.removeItem('theme');
+  //document.body.classList.remove('light-mode');
+  //document.documentElement.classList.remove('light-mode');
+  //updateThemeIcons(false);
+  //if (typeof updateChartsTheme === 'function') updateChartsTheme(false);
+
+  // 2. On déconnecte l'utilisateur
   auth.signOut(); 
-  document.getElementById('vote-selector').value = ""; 
+  
+  document.getElementById('vote-selector').value = "";
   document.getElementById('user-badge').style.background = 'transparent';
   document.getElementById('user-display-name').style.color = '';
   document.body.classList.remove('sidebar-closed');
+  
   const sBtn = document.getElementById('sidebarToggleBtn');
   if (sBtn) {
     sBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>';
@@ -2551,17 +2667,21 @@ function renderFeed() {
       ${textHtml}
       ${imgHtml}
       ${pollHtml} 
-      <div class="post-actions">
+      <div class="post-actions" style="padding-top: 8px; gap: 16px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent);">
+        <button class="action-btn" id="reply-btn-${postId}" onclick="toggleComments('${postId}')">
+          ${ICON_REPLIES} ${post.commentCount || 0}
+        </button>
         <button class="action-btn ${hasLiked ? 'active-like' : ''}" onclick="toggleReaction('${postId}', 'like')">
           ${ICON_LIKE} ${(post.likes || []).length}
         </button>
         <button class="action-btn ${hasDisliked ? 'active-dislike' : ''}" onclick="toggleReaction('${postId}', 'dislike')">
           ${ICON_DISLIKE} ${(post.dislikes || []).length}
         </button>
-        <button class="action-btn" onclick="toggleComments('${postId}'); prepareMainReply('${postId}', null, '${post.pseudo.replace(/'/g, "\\'")}');">
+        <button class="action-btn" onclick="prepareMainReply('${postId}', null, '${post.pseudo.replace(/'/g, "\\'")}');">
           ${ICON_COMMENT} Discuter
         </button>
       </div>
+
       
       <div class="comments-section" id="comments-container-${postId}" style="display: ${isCommentOpen};">
         <div id="comments-list-${postId}" style="display: flex; flex-direction: column; gap: 8px;">
@@ -2757,93 +2877,51 @@ function deletePost(postId) {
 function deleteComment(postId, commentId) {
   if (!currentUser) return;
   const commentRef = db.collection("posts").doc(postId).collection("comments").doc(commentId);
+  
   commentRef.get().then(doc => {
     if (doc.exists) {
       decrementHashtags(doc.data().text); 
     }
     return commentRef.delete();
+  }).then(() => {
+      // NOUVEAU : Décrémente le compteur total
+      db.collection("posts").doc(postId).set({
+          commentCount: firebase.firestore.FieldValue.increment(-1)
+      }, { merge: true });
   }).catch(e => console.error("Erreur de suppression :", e));
-}
-
-// ==========================================
-// GESTION DES COMMENTAIRES ET GIF
-// ==========================================
-
-function buildCommentTree(comments, parentId = null, isRoot = true) {
-  const children = comments.filter(c => (c.parentId || null) === parentId);
-  if (children.length === 0) return '';
-  let html = '';
-  children.forEach(c => {
-    let hasLiked = currentUser ? (c.likes || []).includes(currentUser.uid) : false;
-    let hasDisliked = currentUser ? (c.dislikes || []).includes(currentUser.uid) : false;
-    let imgHtml = c.gifUrl ? `<img src="${c.gifUrl}" class="post-img" style="max-height: 120px;" onerror="this.style.display='none'">` : '';
-    let textHtml = c.text ? `<div class="post-body" style="font-size:11px; margin-bottom: 6px;">${c.text.replace(/\n/g, '<br>')}</div>` : '';
-    const pc = c.partyClass || '';
-    let deleteBtnHtml = '';
-    if (currentUser && currentUser.uid === c.uid) {
-      deleteBtnHtml = `<button class="delete-btn" style="font-size:12px; padding-left:4px;" onclick="deleteComment('${c.postId}', '${c.id}')" title="Supprimer">${ICON_TRASH}</button>`;
-    }
-    const childrenHtml = buildCommentTree(comments, c.id, false);
-    const threadHtml = childrenHtml ? `<div class="comment-thread-nested">${childrenHtml}</div>` : '';
-	
-	let pollHtml = generatePollHtml(c, c.postId, c.id);
-    html += `
-    <div class="${isRoot ? 'comment-card' : ''}" style="${!isRoot ? 'margin-bottom: 4px;' : ''}">
-      <div class="post-header" style="margin-bottom: 4px;">
-        <div style="display:flex; align-items:center;">
-            <span class="post-pseudo ${pc}" style="font-size:11px;">${c.pseudo}</span>
-            ${deleteBtnHtml}
-        </div>
-        <span class="post-time" style="font-size:9px;">${getRelativeTime(c.timestamp)}</span>
-      </div>
-      ${textHtml}
-      ${imgHtml}
-	  ${pollHtml}
-      <div class="post-actions" style="padding-top: 4px; gap: 12px; border-top:none;">
-        <button class="action-btn ${hasLiked ? 'active-like' : ''}" style="font-size: 10px;" onclick="toggleCommentReaction('${c.postId}', '${c.id}', 'like')">
-          ${ICON_LIKE} ${(c.likes || []).length}
-        </button>
-        <button class="action-btn ${hasDisliked ? 'active-dislike' : ''}" style="font-size: 10px;" onclick="toggleCommentReaction('${c.postId}', '${c.id}', 'dislike')">
-          ${ICON_DISLIKE} ${(c.dislikes || []).length}
-        </button>
-        <button class="action-btn" style="font-size: 10px;" onclick="prepareMainReply('${c.postId}', '${c.id}', '${c.pseudo.replace(/'/g, "\\'")}');">
-          ${ICON_COMMENT} Répondre
-        </button>
-      </div>
-      ${threadHtml}
-    </div>
-    `;
-  });
-  return html;
 }
 
 function toggleComments(postId) {
   const el = document.getElementById(`comments-container-${postId}`);
   const isHidden = el.style.display === 'none' || el.style.display === '';
+  
   if (isHidden) {
     el.style.display = 'flex';
     window.openComments[postId] = true;
-    if (!window.commentListeners[postId]) {
+    
+       if (!window.commentListeners[postId]) {
       const listEl = document.getElementById(`comments-list-${postId}`);
       listEl.innerHTML = '<div style="font-size:10px; color:var(--text-dim); text-align:center;">Chargement...</div>';
+      
       window.commentListeners[postId] = db.collection("posts").doc(postId).collection("comments")
         .orderBy("timestamp", "asc").onSnapshot(snap => {
-          let newHtml = '';
-          if(snap.empty) newHtml = '<div style="font-size:10px; color:var(--text-dim); font-style:italic;">Aucun commentaire pour le moment.</div>';
-          else {
-            let allComments = [];
-            snap.forEach(doc => allComments.push({ id: doc.id, postId: postId, ...doc.data() }));
-            newHtml = buildCommentTree(allComments, null, true);
+          let allComments = [];
+          snap.forEach(doc => allComments.push({ id: doc.id, postId: postId, ...doc.data() }));
+          
+          window.postComments[postId] = allComments;
+
+          // CORRECTION DU COMPTEUR : On met à jour l'affichage avec le vrai nombre total d'enfants !
+          const replyBtn = document.getElementById(`reply-btn-${postId}`);
+          if (replyBtn) {
+              replyBtn.innerHTML = `${ICON_REPLIES} ${allComments.length}`;
           }
-          window.commentCache[postId] = newHtml;
-          const currentListEl = document.getElementById(`comments-list-${postId}`);
-          if (currentListEl) currentListEl.innerHTML = newHtml;
+          
+          db.collection("posts").doc(postId).set({ commentCount: allComments.length }, { merge: true }); 
+
+          renderPostComments(postId);
         });
     }
-  } else {
-    el.style.display = 'none';
-    window.openComments[postId] = false;
-  }
+}
 }
 
 async function submitComment(postId) {
@@ -2868,12 +2946,22 @@ async function submitComment(postId) {
     likes: [],
     dislikes: []
   }).then(() => {
+    db.collection("posts").doc(postId).set({
+        commentCount: firebase.firestore.FieldValue.increment(1)
+    }, { merge: true });
+
+    // NOUVEAU : Force l'ouverture du fil pour voir sa réponse immédiatement !
+    if (parentId) {
+        openAncestors(postId, parentId);
+    }
+
     extractAndCountHashtags(text);
     textEl.value = '';
     removeSelectedGif(`comment-${postId}`);
-    cancelReply(postId); 
+    cancelReply(postId);
   });
 }
+
 
 function toggleGifDropdown(targetId) {
   const dropdown = document.getElementById(`gif-dropdown-${targetId}`);
@@ -3406,7 +3494,7 @@ function closePalette() {
 
 function generatePollHtml(entityData, postId, commentId = null) {
   if (!entityData.poll || entityData.poll.length === 0) return '';
-  const entityId = commentId || postId; 
+  const entityId = commentId || postId;
   const votesMap = entityData.pollVotes || {};
   window.activePollData[entityId] = votesMap; 
   
@@ -3435,12 +3523,27 @@ function generatePollHtml(entityData, postId, commentId = null) {
           </div>`;
       }
   });
-  html += `<div style="font-size: 9px; color: var(--text-dim); text-align: right;">${totalVotes} participant(s)</div></div>`;
+  
+  // NOUVEAU : Le message d'erreur caché
+  html += `<div id="poll-error-${entityId}" style="color: #ff4d4d; font-size: 11px; margin-top: 8px; display: none; font-weight: bold; text-align: center;">Il faut se connecter pour voter.</div>`;
+  html += `<div style="font-size: 9px; color: var(--text-dim); text-align: right; margin-top: 4px;">${totalVotes} participant(s)</div></div>`;
   return html;
 }
 
+
 async function votePoll(postId, commentId, optionId) {
-  if (!currentUser) return alert("Connectez-vous pour voter.");
+  const entityId = commentId || postId; 
+  
+  // NOUVEAU : Si pas connecté, on affiche le texte rouge
+  if (!currentUser) {
+      const errorMsg = document.getElementById(`poll-error-${entityId}`);
+      if (errorMsg) {
+          errorMsg.style.display = 'block';
+          setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
+      }
+      return;
+  }
+  
   const partyClass = await getUserPartyClass(currentUser.uid);
   const pseudo = currentUser.displayName || currentUser.email.split('@')[0];
   
@@ -3451,13 +3554,6 @@ async function votePoll(postId, commentId, optionId) {
   ref.update({ [`pollVotes.${currentUser.uid}`]: voteData });
 }
 
-let pollHoverTimeout = null;
-function startPollHover(e, entityId, optionId) {
-  const rect = e.target.getBoundingClientRect();
-  pollHoverTimeout = setTimeout(() => {
-      showPollTooltip(entityId, optionId, rect);
-  }, 2000);
-}
 
 function cancelPollHover() {
   clearTimeout(pollHoverTimeout);
@@ -3497,7 +3593,7 @@ function showPollTooltip(entityId, optionId, rect) {
           <span style="font-weight:bold;color: var(--text) !important;">${pct}%</span>
       </div>`;
   });
-  tooltipHtml += `<div style="margin-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 70%, transparent); padding-top: 6px; font-style: italic; color: var(--text-dim); font-size: 10px;">Ont voté : ${userList.join(', ')}</div>`;
+  tooltipHtml += `<div style="margin-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); padding-top: 6px; font-style: italic; color: var(--text-dim); font-size: 10px;">Ont voté : ${userList.join(', ')}</div>`;
   const tt = document.getElementById('globalPollTooltip');
   tt.innerHTML = tooltipHtml;
   
@@ -3530,17 +3626,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function toggleTheme() {
     const isLight = document.body.classList.toggle('light-mode');
-    // TRÈS IMPORTANT pour la barre de scroll : on l'applique aussi à <html>
-    document.documentElement.classList.toggle('light-mode', isLight); 
+    document.documentElement.classList.toggle('light-mode'); 
+    const newTheme = isLight ? 'light' : 'dark';
     
-    localStorage.setItem('site-theme', isLight ? 'light' : 'dark');
     updateThemeIcons(isLight);
-    
-    if (typeof currentUser !== 'undefined' && currentUser) {
-        db.collection("user_prefs").doc(currentUser.uid).set({ theme: isLight ? 'light' : 'dark' }, { merge: true }).catch(()=>{});
+    if (typeof updateChartsTheme === 'function') updateChartsTheme(isLight);
+
+    if (currentUser) {
+        localStorage.setItem('theme', newTheme);
+        // On sauvegarde au même endroit que les hashtags et la sidebar
+        db.collection("user_prefs").doc(currentUser.uid).set({
+            theme: newTheme
+        }, { merge: true }).catch(err => console.error("Erreur de sauvegarde :", err));
+    } else {
+        localStorage.removeItem('theme');
     }
-    
-    updateChartsTheme(isLight);
 }
 
 function updateFavicon(isLight) {
@@ -3608,6 +3708,231 @@ document.addEventListener("DOMContentLoaded", () => {
     updateThemeIcons(isLight);
     updateChartsTheme(isLight);
 });
+
+function countAllDescendants(allComments, commentId, visited = new Set()) {
+    if (visited.has(commentId)) return 0; // Empêche les boucles infinies
+    visited.add(commentId);
+    
+    const children = allComments.filter(c => c.parentId === commentId);
+    return children.reduce((sum, child) => sum + 1 + countAllDescendants(allComments, child.id, visited), 0);
+}
+
+function setFocusComment(postId, commentId, event) {
+    if (event) {
+        event.stopPropagation();
+        if (event.target.closest('button') || event.target.closest('.hashtag-link') || event.target.closest('.poll-option')) return;
+    }
+    
+    if (window.focusedCommentId[postId] === commentId) return;
+
+    window.focusedCommentId[postId] = commentId; 
+    
+    // --- NOUVEAU : On force l'ouverture des réponses du commentaire ciblé ---
+    if (commentId) {
+        window.openThreads[commentId] = true;
+    }
+
+    renderPostComments(postId); 
+
+    // AUTO-SCROLL : Centre l'écran sur le commentaire ciblé
+    setTimeout(() => {
+        const targetId = commentId ? `comment-${commentId}` : `comments-list-${postId}`;
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 50);
+}
+
+
+
+function renderPostComments(postId) {
+    const allComments = window.postComments[postId] || [];
+    let html = '';
+    
+    if (allComments.length === 0) {
+        html = '<div style="font-size:10px; color:var(--text-dim); font-style:italic; text-align:center;">Aucun commentaire pour le moment.</div>';
+    } else {
+        const focusId = window.focusedCommentId[postId] || null;
+        let roots = [];
+        
+        if (focusId) {
+            // SI UN FOCUS EST ACTIF : On isole le commentaire cliqué
+            const focusNode = allComments.find(c => c.id === focusId);
+                        if (focusNode) {
+                html += `<div style="margin-bottom: 12px; display: flex; align-items: center;">
+                            <button class="minimal-gif-btn" style="color: var(--text); border-color: var(--border); padding: 4px 8px;" onclick="resetFocusAndCollapse('${postId}', event)">
+                                ← Retour au fil complet
+                            </button>
+                         </div>`;
+                roots = [focusNode];
+            } else {
+                window.focusedCommentId[postId] = null;
+                roots = allComments.filter(c => !c.parentId);
+            }
+        } else {
+            // SI AUCUN FOCUS : On affiche les réponses principales (n+1)
+            roots = allComments.filter(c => !c.parentId);
+        }
+
+        roots.forEach(r => {
+            html += buildCommentNodeHtml(r, allComments, true);
+        });
+    }
+    
+    window.commentCache[postId] = html;
+    const listEl = document.getElementById(`comments-list-${postId}`);
+    if (listEl) listEl.innerHTML = html; }
+    
+
+function buildCommentNodeHtml(c, allComments, isRoot) {
+    let hasLiked = currentUser ? (c.likes || []).includes(currentUser.uid) : false;
+    let hasDisliked = currentUser ? (c.dislikes || []).includes(currentUser.uid) : false;
+    let imgHtml = c.gifUrl ? `<img src="${c.gifUrl}" class="post-img" style="max-height: 120px;" onerror="this.style.display='none'">` : '';
+    let textHtml = c.text ? `<div class="post-body" style="font-size:1em; margin-bottom: 6px;">${c.text.replace(/\n/g, '<br>')}</div>` : '';
+    const pc = c.partyClass || '';
+    
+    let deleteBtnHtml = '';
+    if (currentUser && currentUser.uid === c.uid) {
+        deleteBtnHtml = `<button class="delete-btn" style="font-size:1em; padding-left:4px;" onclick="event.stopPropagation(); deleteComment('${c.postId}', '${c.id}')" title="Supprimer">${ICON_TRASH}</button>`;
+    }
+
+    // Le clic sur la carte déclenche TOUJOURS le focus
+    const cardClickAttr = `onclick="setFocusComment('${c.postId}', '${c.id}', event)"`;
+
+    const descCount = countAllDescendants(allComments, c.id);
+    const isOpen = window.openThreads[c.id]; // Vérifie si on a cliqué sur "Replies"
+    
+const toggleBtnHtml = descCount > 0 ? 
+        `<button class="action-btn" style="font-size: 0.9em;" onclick="toggleReplies('${c.postId}', '${c.id}', event)">
+            ${ICON_REPLIES} ${descCount}
+        </button>` : '';
+
+
+    let pollHtml = generatePollHtml(c, c.postId, c.id);
+
+    let html = `
+    <div id="comment-${c.id}" class="${isRoot ? 'comment-card' : 'comment-card nested-card'}" style="${!isRoot ? 'margin-bottom: 4px;' : ''} cursor: pointer;" ${cardClickAttr}>
+      <div class="post-header" style="margin-bottom: 4px;">
+        <div style="display:flex; align-items:center;">
+            <span class="post-pseudo ${pc}" style="font-size:0.9em;">${c.pseudo}</span>
+            ${deleteBtnHtml}
+        </div>
+        <span class="post-time" style="font-size:0.8em;">${getRelativeTime(c.timestamp)}</span>
+      </div>
+      ${textHtml}
+      ${imgHtml}
+      ${pollHtml}
+      <div class="post-actions" style="padding-top: 4px; gap: 12px; border-top:none;">
+        ${toggleBtnHtml}
+        <button class="action-btn ${hasLiked ? 'active-like' : ''}" style="font-size: 0.9em;" onclick="event.stopPropagation(); toggleCommentReaction('${c.postId}', '${c.id}', 'like')">
+          ${ICON_LIKE} ${(c.likes || []).length}
+        </button>
+        <button class="action-btn ${hasDisliked ? 'active-dislike' : ''}" style="font-size: 0.9em;" onclick="event.stopPropagation(); toggleCommentReaction('${c.postId}', '${c.id}', 'dislike')">
+          ${ICON_DISLIKE} ${(c.dislikes || []).length}
+        </button>
+        <button class="action-btn" style="font-size: 0.9em;" onclick="event.stopPropagation(); prepareMainReply('${c.postId}', '${c.id}', '${(c.pseudo || '').replace(/'/g, "\\'")}');">
+          ${ICON_COMMENT} Répondre
+        </button>
+      </div>`;
+
+    if (isOpen) {
+        const children = allComments.filter(child => child.parentId === c.id);
+        if (children.length > 0) {
+            // AJOUT DU FONT-SIZE PROPORTIONNEL : 0.93em réduit la taille de 7% à chaque niveau d'imbrication
+            html += `<div class="comment-thread-nested" style="margin-top: 8px; font-size: 0.93em;" onclick="event.stopPropagation()">`;
+            children.forEach(child => {
+                html += buildCommentNodeHtml(child, allComments, false);
+            });
+            html += `</div>`;
+        }
+    }
+
+
+    html += `</div>`; // Fin de la carte
+    return html;
+}
+
+function toggleReplies(postId, commentId, event) {
+    event.stopPropagation();
+    
+    const allComments = window.postComments[postId] || [];
+    const focusId = window.focusedCommentId[postId] || null;
+    
+    let depth = 1;
+    let current = allComments.find(c => c.id === commentId);
+    while (current && current.parentId && current.id !== focusId) {
+        depth++;
+        current = allComments.find(c => c.id === current.parentId);
+    }
+
+    const isCurrentlyOpen = window.openThreads[commentId];
+
+    // FOCUS AUTO : Si on s'apprête à ouvrir la réponse n+3 (ou +)
+    if (!isCurrentlyOpen && depth >= 3) {
+        window.openThreads[commentId] = true; // On l'ouvre EN PREMIER
+        setFocusComment(postId, commentId, null); // Puis on focus
+        return;
+    }
+
+    window.openThreads[commentId] = !isCurrentlyOpen;
+    renderPostComments(postId);
+}
+
+function resetFocusAndCollapse(postId, event) {
+    if(event) event.stopPropagation();
+    window.focusedCommentId[postId] = null;
+    
+    const allComments = window.postComments[postId] || [];
+    allComments.forEach(c => {
+        window.openThreads[c.id] = false;
+    });
+    
+    renderPostComments(postId); 
+    
+    // AUTO-SCROLL : Remonte à la liste des commentaires initiaux
+    setTimeout(() => {
+        const listEl = document.getElementById(`comments-list-${postId}`);
+        if (listEl) {
+            // "start" aligne le haut du post avec le haut de l'écran
+            listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 50);
+}
+
+
+// Ouvre l'arbre jusqu'à la réponse qu'on vient de publier
+
+function openAncestors(postId, parentId) {
+    if (!parentId) return;
+    const allComments = window.postComments[postId] || [];
+    let current = allComments.find(c => c.id === parentId);
+    
+    // Remonte l'arbre parent par parent et les déclare "ouverts"
+    while (current) {
+        window.openThreads[current.id] = true;
+        current = allComments.find(c => c.id === current.parentId);
+    }
+}
+
+function applyTheme(themeName) {
+    const isLight = themeName === 'light';
+    
+    if (isLight) {
+        document.body.classList.add('light-mode');
+        document.documentElement.classList.add('light-mode');
+    } else {
+        document.body.classList.remove('light-mode');
+        document.documentElement.classList.remove('light-mode');
+    }
+    
+    // CORRECTION : On utilise bien currentUser
+    if (currentUser) {
+        localStorage.setItem('theme', themeName);
+    }
+    
+    updateThemeIcons(isLight);
+    if (typeof updateChartsTheme === 'function') updateChartsTheme(isLight); }
 
 
 </script>
