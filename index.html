@@ -1177,6 +1177,9 @@ body.light-mode .sticky-chat-footer {
         </div>
       </div>
     </div>
+	<div style="margin-left: 4px; margin-top: 10px;">
+      <button class="minimal-gif-btn" style="font-size: 10px; padding: 4px 8px;" onclick="openHistoryEditor()">Gérer mon historique de vote</button>
+    </div>
   </div>
           
           <div style="display: flex; flex-direction: column; gap: 6px;">
@@ -3595,7 +3598,7 @@ function registerUser() {
         db.collection("users").doc(user.uid).set({
             dob: dobString,
             age: age,
-            bio: "Nouvel arrivant sur L'Araignée"
+            bio: "Ma bio..."
         }, { merge: true });
 
         user.updateProfile({ displayName: cleanName }).then(() => {
@@ -4190,26 +4193,36 @@ window.openUserProfile = async function(pseudoToFind) {
     try {
         if (!pseudoToFind) return;
 
-        // 1. Trouver l'UID à partir du pseudo
+        // 1. Trouver l'UID
         const lowerName = pseudoToFind.trim().toLowerCase();
         const usernameDoc = await db.collection("usernames").doc(lowerName).get();
         
-        if (!usernameDoc.exists) {
-            return alert("Cet utilisateur est introuvable (ancien compte supprimé ou bot).");
-        }
+        if (!usernameDoc.exists) return alert("Cet utilisateur est introuvable.");
         const targetUid = usernameDoc.data().uid;
 
-        // 2. Récupérer les données de l'utilisateur
+        // 2. Récupérer TOUTES les données (Profil + Vote actuel)
         const userDoc = await db.collection("users").doc(targetUid).get();
-        
-        // CORRECTION ICI : S'il n'a pas de document (ancien compte), on met des valeurs vides au lieu de tout bloquer !
+        const voteDoc = await db.collection("votes").doc(targetUid).get();
+
         const userData = userDoc.exists ? userDoc.data() : {};
+        const currentVote = voteDoc.exists ? voteDoc.data().parti : 'Non renseigné';
         
         const age = userData.dob ? calculateAge(userData.dob) : 'Inconnu';
         const bio = userData.bio || "Cet utilisateur n'a pas encore de bio.";
         
-        // 3. Calculer les élections éligibles
         let votesHtml = '';
+
+        // --- A. Intention de Vote 2027 (Toujours affichée) ---
+        let displayVote27 = currentVote;
+        let color27 = COULEURS[currentVote] || 'var(--text)';
+        if (currentVote === 'ABS') { displayVote27 = 'Abstention'; color27 = 'var(--text-dim)'; }
+        else if (currentVote === 'BLANC') { displayVote27 = 'Vote Blanc'; color27 = 'var(--text-dim)'; }
+        else if (currentVote === 'Non renseigné') { color27 = 'var(--text-dim)'; }
+        else if (CANDIDATS[currentVote]) { displayVote27 = `${CANDIDATS[currentVote]} (${currentVote})`; }
+
+        votesHtml += `<div class="vote-item" style="border-left: 3px solid var(--accent); background: rgba(255,255,255,0.05); margin-bottom: 8px;"><strong>Présidentielle 2027 :</strong> <span style="color: ${color27}; font-weight: bold;">${displayVote27}</span></div>`;
+
+        // --- B. Historique des élections passées ---
         if (userData.dob) {
             const dateMajorite = new Date(userData.dob);
             dateMajorite.setFullYear(dateMajorite.getFullYear() + 18);
@@ -4218,25 +4231,25 @@ window.openUserProfile = async function(pseudoToFind) {
             
             if (electionsEligibles.length > 0) {
                 electionsEligibles.forEach(elec => {
-                    const rawVote = userData.history && userData.history[elec.id] ? userData.history[elec.id] : 'Non renseigné';
+                    const rawVote = userData.history && userData.history[elec.id] ? userData.history[elec.id] : '';
                     let displayVote = rawVote;
                     let color = COULEURS[rawVote] || 'var(--text)';
                     
                     if (rawVote === 'ABS') { displayVote = 'Abstention'; color = 'var(--text-dim)'; }
                     else if (rawVote === 'BLANC') { displayVote = 'Vote Blanc'; color = 'var(--text-dim)'; }
-                    else if (rawVote === 'Non renseigné') { color = 'var(--text-dim)'; }
-                    else if (CANDIDATS[rawVote]) { displayVote = `${CANDIDATS[rawVote]} (${rawVote})`; }
+                    else if (!rawVote || rawVote === 'Non renseigné') { displayVote = 'Non renseigné'; color = 'var(--text-dim)'; }
+                    else if (PARTIS[rawVote]) { displayVote = `${PARTIS[rawVote]} (${rawVote})`; }
 
                     votesHtml += `<div class="vote-item"><strong>${elec.nom} :</strong> <span style="color: ${color}; font-weight: bold;">${displayVote}</span></div>`;
                 });
             } else {
-                votesHtml = `<div style="font-size:0.9em; color:var(--text-dim);">Pas encore en âge de voter lors des dernières élections.</div>`;
+                votesHtml += `<div style="font-size:0.9em; color:var(--text-dim); margin-top:8px;">Pas encore en âge de voter lors des dernières élections.</div>`;
             }
         } else {
-            votesHtml = `<div style="font-size:0.9em; color:var(--text-dim);">Date de naissance non renseignée, historique indisponible.</div>`;
+            votesHtml += `<div style="font-size:0.9em; color:var(--text-dim); margin-top:8px;">Date de naissance non renseignée, historique indisponible.</div>`;
         }
 
-        // 4. Afficher le Modal (on supprime l'ancien s'il était déjà ouvert)
+        // 3. Afficher la modale
         const oldModal = document.getElementById('profile-modal');
         if (oldModal) oldModal.remove();
 
@@ -4249,7 +4262,7 @@ window.openUserProfile = async function(pseudoToFind) {
                 </div>
                 <div class="profile-bio">"${bio}"</div>
                 <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
-                <h3 style="font-size:1em; margin-bottom:10px;">Historique de vote</h3>
+                <h3 style="font-size:1em; margin-bottom:10px;">Votes</h3>
                 <div class="vote-history-list">
                     ${votesHtml}
                 </div>
@@ -4259,9 +4272,107 @@ window.openUserProfile = async function(pseudoToFind) {
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
     } catch (error) {
-        console.error("Erreur lors de l'ouverture du profil :", error);
-        alert("Une erreur inattendue est survenue lors du chargement du profil.");
+        console.error("Erreur d'ouverture :", error);
     }
+};
+
+// --- GESTION DE L'HISTORIQUE DE VOTE ---
+
+window.openHistoryEditor = async function() {
+    if (!currentUser) return;
+    
+    // 1. Récupérer les données de l'utilisateur connecté
+    const userDoc = await db.collection("users").doc(currentUser.uid).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    const history = userData.history || {};
+    
+    if (!userData.dob) {
+        return alert("Veuillez renseigner votre date de naissance à l'inscription pour utiliser cette fonction.");
+    }
+
+    // 2. Calculer à quelles élections il avait le droit de voter
+    const dateMajorite = new Date(userData.dob);
+    dateMajorite.setFullYear(dateMajorite.getFullYear() + 18);
+
+    const electionsEligibles = ELECTIONS_FRANCE.filter(elec => new Date(elec.date) >= dateMajorite);
+
+    if (electionsEligibles.length === 0) {
+        return alert("Vous n'étiez pas en âge de voter lors des élections passées !");
+    }
+
+    // 3. Créer le formulaire
+    let formHtml = '';
+    electionsEligibles.forEach(elec => {
+        const currentVal = history[elec.id] || '';
+        formHtml += `
+        <div style="margin-bottom: 12px;">
+            <label style="display:block; font-size:11px; margin-bottom:4px; color:var(--text-dim);">${elec.nom}</label>
+            <select id="hist_${elec.id}" style="width:100%; padding:8px; border-radius:6px; background:var(--bg); color:var(--text); border:1px solid var(--border);">
+                <option value="">Non renseigné</option>
+                <option value="ABS" ${currentVal==='ABS'?'selected':''}>Abstention</option>
+                <option value="BLANC" ${currentVal==='BLANC'?'selected':''}>Vote Blanc / Nul</option>
+                <option value="LO" ${currentVal==='LO'?'selected':''}>Lutte Ouvrière (LO)</option>
+                <option value="PCF" ${currentVal==='PCF'?'selected':''}>Parti Communiste (PCF)</option>
+                <option value="LFI" ${currentVal==='LFI'?'selected':''}>La France Insoumise (LFI)</option>
+                <option value="EELV" ${currentVal==='EELV'?'selected':''}>Les Écologistes (EELV)</option>
+                <option value="PS" ${currentVal==='PS'?'selected':''}>Parti Socialiste (PS)</option>
+                <option value="REN" ${currentVal==='REN'?'selected':''}>Renaissance / LREM</option>
+                <option value="HZ" ${currentVal==='HZ'?'selected':''}>Horizons / Centre / MoDem</option>
+                <option value="LR" ${currentVal==='LR'?'selected':''}>Les Républicains (LR/UMP)</option>
+                <option value="DF" ${currentVal==='DF'?'selected':''}>Debout la France</option>
+                <option value="RN" ${currentVal==='RN'?'selected':''}>Rassemblement National (RN/FN)</option>
+                <option value="RQ" ${currentVal==='RQ'?'selected':''}>Reconquête</option>
+            </select>
+        </div>`;
+    });
+
+    const modalHtml = `
+    <div id="history-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;" onclick="this.remove()">
+        <div class="profile-modal-content" onclick="event.stopPropagation()">
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:18px;">Mon Historique</h2>
+            <div style="max-height: 50vh; overflow-y: auto; padding-right: 5px;">
+                ${formHtml}
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:20px; align-items: center;">
+                <button class="minimal-gif-btn" onclick="document.getElementById('history-modal').remove()">Annuler</button>
+                <button class="minimal-gif-btn2" onclick="saveHistoryEditor()">Enregistrer</button>
+            </div>
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+};
+
+window.saveHistoryEditor = function() {
+    if (!currentUser) return;
+    const historyUpdates = {};
+    
+    // Parcourir toutes les élections possibles pour voir ce que l'utilisateur a rempli
+    ELECTIONS_FRANCE.forEach(elec => {
+        const selectEl = document.getElementById(`hist_${elec.id}`);
+        if (selectEl) {
+            historyUpdates[elec.id] = selectEl.value;
+        }
+    });
+
+    // Sauvegarde dans Firebase (merge: true permet de ne pas écraser les autres données)
+    db.collection("users").doc(currentUser.uid).set({
+        history: historyUpdates
+    }, { merge: true }).then(() => {
+        document.getElementById('history-modal').remove();
+        // Optionnel : afficher un petit message de succès
+        const bioText = document.getElementById('user-bio-text');
+        const oldText = bioText.innerText;
+        bioText.innerText = "Historique sauvegardé !";
+        bioText.style.color = "var(--EELV)";
+        setTimeout(() => {
+            bioText.innerText = oldText;
+            bioText.style.color = "var(--text-dim)";
+        }, 2000);
+    }).catch(err => {
+        console.error("Erreur de sauvegarde :", err);
+        alert("Erreur lors de la sauvegarde.");
+    });
 };
 
 // 1. Fonction pour construire ou mettre à jour le design d'un menu déroulant
