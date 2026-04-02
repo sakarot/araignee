@@ -4350,17 +4350,17 @@ function updateDays(rebuildUI = true) {
     }
 }
 
-// ==========================================
-// CAPTURE ET PARTAGE D'IMAGE (Mise à jour robuste)
-// ==========================================
 async function shareAsImage(btnElement, type, id) {
-    if (!window.htmlToImage) return;
+    if (!window.htmlToImage) {
+        alert("Erreur de chargement de la librairie d'image.");
+        return;
+    }
 
     const originalHtml = btnElement.innerHTML;
     const originalColor = btnElement.style.color;
     
-    // État de chargement
-    btnElement.innerHTML = `${ICON_HOURGLASS} Capture...`;
+    // Indicateur de chargement
+    btnElement.innerHTML = `${ICON_HOURGLASS}`;
     btnElement.style.color = 'var(--text)';
 
     const targetId = type === 'post' ? `post-card-${id}` : `comment-${id}`;
@@ -4368,39 +4368,45 @@ async function shareAsImage(btnElement, type, id) {
     
     if (!targetElement) return;
 
-    // --- 1. SAUVEGARDE ET MODIFICATION DES STYLES (Sur l'élément réel) ---
+    // --- 1. MODIFICATIONS TEMPORAIRES (Couleurs et Alignement du sondage) ---
     
-    // a. Masquer le bouton de partage
-    const shareBtn = targetElement.querySelector('.share-btn-action');
-    const oldShareDisplay = shareBtn ? shareBtn.style.display : '';
-    if (shareBtn) shareBtn.style.display = 'none';
-
-    // b. Forcer les couleurs des boutons Like/Dislike
     const actionBtns = targetElement.querySelectorAll('.action-btn');
     const oldBtnStates = [];
+    
+    // a. Forcer les couleurs Like/Dislike pour la photo
     actionBtns.forEach(btn => {
-        oldBtnStates.push({ el: btn, color: btn.style.color, classList: [...btn.classList] });
-        if (btn.innerHTML.includes(ICON_LIKE)) {
-            btn.style.color = 'var(--EELV)';
-            btn.classList.add('active-like');
-        } else if (btn.innerHTML.includes(ICON_DISLIKE)) {
-            btn.style.color = 'var(--LFI)';
-            btn.classList.add('active-dislike');
+        const onclickAttr = btn.getAttribute('onclick') || '';
+        
+        // Si c'est un bouton de réaction (Like ou Dislike)
+        if (onclickAttr.includes('toggleReaction') || onclickAttr.includes('toggleCommentReaction')) {
+            oldBtnStates.push({ 
+                el: btn, 
+                color: btn.style.color, 
+                classList: [...btn.classList] 
+            });
+            
+            // On force le vert pour Like, le rouge pour Dislike
+            if (onclickAttr.includes("'like'")) {
+                btn.style.color = 'var(--EELV)';
+                btn.classList.add('active-like');
+            } else if (onclickAttr.includes("'dislike'")) {
+                btn.style.color = 'var(--LFI)';
+                btn.classList.add('active-dislike');
+            }
         }
     });
 
-    // c. Sécuriser l'alignement du sondage pour éviter les bugs de capture
+    // b. Sécuriser l'alignement du sondage
     const pollContents = targetElement.querySelectorAll('.poll-option-content');
     const oldPollStates = [];
     pollContents.forEach(content => {
         oldPollStates.push({ el: content, display: content.style.display, alignItems: content.style.alignItems, height: content.style.height });
-        // On force un Flexbox robuste
         content.style.display = 'flex';
         content.style.alignItems = 'center';
         content.style.height = '100%';
     });
 
-    // d. Embellir la carte pour la photo
+    // c. Embellir la carte pour la photo
     const oldPadding = targetElement.style.padding;
     const oldBg = targetElement.style.backgroundColor;
 
@@ -4408,13 +4414,30 @@ async function shareAsImage(btnElement, type, id) {
     targetElement.style.backgroundColor = document.body.classList.contains('light-mode') ? '#F1F5F9' : '#0D1B2A';
 
     try {
-        // Laisser le navigateur appliquer les nouveaux styles (50ms)
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, 50)); // Petit délai pour appliquer le CSS
 
-        // --- 2. CAPTURE ---
+        // --- 2. CAPTURE AVEC FILTRE MAGIQUE ---
+        // Cette fonction décide si un élément HTML doit être dessiné sur l'image ou ignoré
+        const filterFunction = (node) => {
+            if (node.nodeType === 1) { // Si c'est une balise HTML
+                // 1. Ignorer le bouton "Partager" (lui-même)
+                if (node === btnElement) return false;
+                
+                const onclickStr = node.getAttribute('onclick') || '';
+                
+                // 2. Ignorer le bouton "Discuter" / "Répondre"
+                if (onclickStr.includes('prepareMainReply')) return false;
+                
+                // 3. (Bonus) Ignorer le compteur de commentaires pour épurer l'image finale
+                if (onclickStr.includes('toggleComments') || onclickStr.includes('toggleReplies')) return false;
+            }
+            return true; // Garder tout le reste
+        };
+
         const blob = await htmlToImage.toBlob(targetElement, {
-            pixelRatio: 2, // Haute définition
-            backgroundColor: targetElement.style.backgroundColor
+            pixelRatio: 2, // HD
+            backgroundColor: targetElement.style.backgroundColor,
+            filter: filterFunction // Application du filtre !
         });
 
         if (!blob) throw new Error("Image vide générée");
@@ -4423,8 +4446,7 @@ async function shareAsImage(btnElement, type, id) {
         const item = new ClipboardItem({ 'image/png': blob });
         await navigator.clipboard.write([item]);
 
-        // Succès
-        btnElement.innerHTML = `${ICON_CHECK} Copié !`;
+        btnElement.innerHTML = `${ICON_CHECK} Copié`;
         btnElement.style.color = 'var(--EELV)';
 
     } catch (error) {
@@ -4432,9 +4454,7 @@ async function shareAsImage(btnElement, type, id) {
         btnElement.innerHTML = `${ICON_CROSS} Échec`;
         btnElement.style.color = 'var(--LFI)';
     } finally {
-        // --- 4. RESTAURATION IMMÉDIATE DES STYLES ORIGINAUX ---
-        if (shareBtn) shareBtn.style.display = oldShareDisplay;
-        
+        // --- 4. RESTAURATION ---
         oldBtnStates.forEach(state => {
             state.el.style.color = state.color;
             state.el.className = state.classList.join(' ');
@@ -4449,7 +4469,6 @@ async function shareAsImage(btnElement, type, id) {
         targetElement.style.padding = oldPadding;
         targetElement.style.backgroundColor = oldBg;
 
-        // Réinitialiser le texte du bouton après un délai
         setTimeout(() => {
             if (btnElement.innerHTML.includes('Copié') || btnElement.innerHTML.includes('Échec')) {
                 btnElement.innerHTML = originalHtml;
