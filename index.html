@@ -501,7 +501,7 @@ body.light-mode .sticky-chat-footer {
   .pct-bar-cell { width: 120px; }
   .mini-bar { height: 4px; border-radius: 2px; margin-top: 4px; transition: width 0.6s ease; }
   
-  .global-stats-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border); }
+  .global-stats-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; padding: 12px 16px; background: color-mix(in srgb, var(--text-dim) 15%, transparent); border-radius: 8px; border: 1px solid var(--border); }
   .stat-item { display: flex; flex-direction: column; gap: 4px; }
   .stat-lbl { font-family: 'Space Mono', monospace; font-size: 9px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; }
   .stat-val { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--text); }
@@ -566,6 +566,9 @@ body.light-mode .sticky-chat-footer {
   .post-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; }
   .post-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
   .post-pseudo { font-weight: bold; color: var(--text); font-size: 13px; transition: color 0.2s; }
+  .post-pseudo:hover {
+    color: var(--accent);
+}
   .post-time { color: var(--text-dim); font-family: 'Space Mono', monospace; font-size: 7px; }
   .post-body { font-size: 13px; margin-bottom: 12px; word-break: break-word; line-height: 1.4; color: #ccc; }
   .post-img { max-width: 100%; border-radius: 6px; margin-top: 8px; max-height: 200px; object-fit: cover; }
@@ -995,7 +998,7 @@ body.light-mode .sticky-chat-footer {
     text-decoration: none;
     word-break: break-all;
 }
-.post-link:hover { text-decoration: underline; }
+.post-link:hover { color: var(--text) !important; }
 
 .link-preview-wrapper { margin-top: 10px; }
 .link-preview-loading { font-size: 11px; color: var(--text-dim); font-style: italic; }
@@ -1020,7 +1023,7 @@ body.light-mode .sticky-chat-footer {
     cursor: pointer;
     font-weight: 500;
 }
-.mention-link:hover { text-decoration: underline; }
+.mention-link:hover {  color: var(--text) !important; }
 .reply-indicator {
     color: var(--text-dim);
     font-size: 0.7em;
@@ -1154,7 +1157,7 @@ body.light-mode .sticky-chat-footer {
       <div class="vote-panel-container">
         <div class="vote-panel-left">
           <div id="voter-profile-view" style="display: none; flex-direction: column; align-items: flex-start; gap: 6px;">
-            <div class="username-container" style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);">
+            <div class="username-container" style="display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--text-dim) 6%, transparent); padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);">
               <span id="user-badge" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: transparent; transition: background 0.3s;"></span>
               <strong id="user-display-name" style="font-size: 15px; transition: color 0.3s;"></strong>
             </div>
@@ -2459,7 +2462,7 @@ auth.onAuthStateChanged(user => {
             
             friendsHtml += `
               <div class="friend-item clickable ${isActive}" id="friend-item-${fUid}" onclick="setFriendFilter('${fUid}')">
-                <strong id="friend-pseudo-${fUid}" class="post-pseudo" style="transition: color 0.3s; font-size:13px;">${friend.pseudo}</strong>
+                <strong id="friend-pseudo-${fUid}" class="post-pseudo" style="transition: color 0.3s; font-size:13px;" onclick="event.stopPropagation(); openUserProfile('${friend.pseudo.replace(/'/g, "\\'")}')">${friend.pseudo}</strong>
                 <button class="delete-btn" onclick="event.stopPropagation(); rejectOrRemoveFriend('${fUid}')" title="Retirer">✖</button>
               </div>
             `;
@@ -2868,7 +2871,7 @@ function renderFeed() {
     postEl.innerHTML = `
       <div class="post-header">
         <div style="display:flex; align-items:center;">
-            <span class="post-pseudo ${pc}">${post.pseudo}</span>
+            <span class="post-pseudo ${pc}" onclick="event.stopPropagation(); openUserProfile('${post.pseudo.replace(/'/g, "\\'")}')">${post.pseudo}</span>
             ${deleteBtnHtml}
         </div>
         <span class="post-time">${getRelativeTime(post.timestamp)}</span>
@@ -3793,9 +3796,9 @@ function showPollTooltip(entityId, optionId, rect) {
   let partyCounts = {};
   let userList = [];
   voters.forEach(v => {
-      userList.push(v.pseudo);
-      const pClass = v.partyClass ? v.partyClass.replace('p-', '') : 'Sans étiquette';
-      partyCounts[pClass] = (partyCounts[pClass] || 0) + 1;
+     userList.push(`<span class="mention-link" style="cursor:pointer;" onclick="event.stopPropagation(); openUserProfile('${v.pseudo.replace(/'/g, "\\'")}')">${v.pseudo}</span>`);
+    const pClass = v.partyClass ? v.partyClass.replace('p-', '') : 'Sans étiquette';
+    partyCounts[pClass] = (partyCounts[pClass] || 0) + 1;
   });
   let tooltipHtml = `<div class="poll-tooltip-title">Analyse du vote</div>`;
   
@@ -4228,12 +4231,12 @@ async function openUserProfile(pseudoToFind) {
     }
 
     // 4. Afficher le Modal
-    const modalHtml = `
-    <div id="profile-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex;">
-        <div class="profile-modal-content">
+const modalHtml = `
+    <div id="profile-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex;" onclick="this.remove()">
+        <div class="profile-modal-content" onclick="event.stopPropagation()">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h2 style="margin:0;">@${pseudoToFind} <span style="font-size:0.6em; color:var(--text-dim);">(${age} ans)</span></h2>
-                <button onclick="document.getElementById('profile-modal').remove()" style="background:none; border:none; color:white; font-size:1.5em; cursor:pointer;">&times;</button>
+                <button onclick="document.getElementById('profile-modal').remove()" style="background:none; border:none; color:var(--text-dim); font-size:1.5em; cursor:pointer;">&times;</button>
             </div>
             <div class="profile-bio">"${bio}"</div>
             <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
