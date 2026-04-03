@@ -1440,6 +1440,23 @@ body.light-mode .sticky-chat-footer {
     <img id="post-gif-preview">
     <button class="gif-preview-close" onclick="removeSelectedGif('post')">✖</button>
 </div>
+
+<div id="post-audio-preview-wrap" style="display:none; align-items: center; gap: 8px; background: var(--surface2); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 6px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
+        <button type="button" class="minimal-gif-btn" id="audio-preview-playbtn" onclick="togglePostAudio('preview')" style="padding: 4px; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; display: none;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        
+        <button type="button" class="minimal-gif-btn" id="speedbtn-preview" data-speed="1" onclick="cycleAudioSpeed('preview')" style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: bold; padding: 2px 4px; border-radius: 4px; height: 20px; display: none; align-items: center; justify-content: center; flex-shrink: 0;">1x</button>
+        
+        <span id="timer-preview" style="font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text); min-width: 35px; flex-shrink: 0;">60s</span>
+        
+        <div style="flex: 1; min-width: 0; position: relative; cursor: pointer; display: flex; align-items: center;" onclick="seekAudio(event, 'preview')">
+            <canvas id="canvas-preview" width="400" height="60" style="width: 100%; height: 30px; display: block;"></canvas>
+            <div id="progress-preview" style="position: absolute; top: 0; left: 0; bottom: 0; width: 0%; background: var(--text); opacity: 0.15; pointer-events: none; border-radius: 2px;"></div>
+        </div>
+        
+        <button type="button" class="delete-btn" onclick="removeSelectedAudio()" style="margin-left: auto; flex-shrink: 0;">✖</button>
+    </div>
           
           <textarea id="post-text" placeholder="Tisser sa toile..."></textarea>
           
@@ -1483,6 +1500,10 @@ body.light-mode .sticky-chat-footer {
                 <rect x="10" y="10" width="4" height="10" rx="1"/>
                 <rect x="16" y="6" width="4" height="14" rx="1"/>
               </svg>
+            </button>
+			
+			<button type="button" class="minimal-gif-btn" id="btn-audio-record" onclick="toggleAudioRecord()" title="Enregistrer un audio (1 min max)" style="display: flex; align-items: center; justify-content: center; padding: 2px 6px;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
             </button>
 			
           </div>
@@ -5241,12 +5262,13 @@ window.submitPost = async function() {
   const text = textEl.value.trim();
 
   const gifUrlFromTenor = selectedGifs['post'] || "";
-  // On utilise notre fichier compressé magique !
+  // On récupère la donnée média (qui contient la photo compressée, la vidéo OU l'audio)
   const mediaDataUrl = window.selectedMediaDataUrl; 
 
   const errMsg = document.getElementById('post-error-msg');
   if (errMsg) errMsg.style.display = 'none';
 
+  // Permet l'envoi s'il n'y a pas de texte MAIS qu'il y a un audio (ou autre média)
   if (!text && !gifUrlFromTenor && !mediaDataUrl) return;
 
   const submitBtn = document.querySelector('button[onclick="submitPost()"]');
@@ -5256,6 +5278,8 @@ window.submitPost = async function() {
 
   try {
       let finalMediaUrl = mediaDataUrl || gifUrlFromTenor;
+      
+      // Détection automatique du type de média
       let isVideo = window.selectedMediaFile && window.selectedMediaFile.type.startsWith('video/');
       let isAudio = window.selectedMediaFile && window.selectedMediaFile.type.startsWith('audio/');
 
@@ -5263,6 +5287,7 @@ window.submitPost = async function() {
       const partyClass = await getUserPartyClass(currentUser.uid);
       const userColor = await getUserMixedColor(currentUser.uid);
 
+      // Si c'est une réponse à un commentaire (Discussion)
       if (window.mainReplyTarget) {
           const target = window.mainReplyTarget;
           await db.collection("posts").doc(target.postId).collection("comments").add({
@@ -5273,6 +5298,7 @@ window.submitPost = async function() {
               text: text,
               gifUrl: finalMediaUrl,
               isVideo: isVideo,
+              isAudio: isAudio, // <- AJOUT CRUCIAL ICI
               parentId: target.commentId,
               timestamp: firebase.firestore.FieldValue.serverTimestamp(),
               likes: [],
@@ -5284,8 +5310,9 @@ window.submitPost = async function() {
           }, { merge: true });
 
           openAncestors(target.postId, target.commentId);
-          cancelMainReply(); // <--- CORRECTION DU CRASH ICI !
+          cancelMainReply(); 
       } else {
+          // Si c'est un nouveau Post
           await db.collection("posts").add({
               uid: currentUser.uid,
               pseudo: pseudoUser,
@@ -5294,6 +5321,7 @@ window.submitPost = async function() {
               text: text,
               gifUrl: finalMediaUrl,
               isVideo: isVideo,
+              isAudio: isAudio, // <- AJOUT CRUCIAL ICI
               timestamp: firebase.firestore.FieldValue.serverTimestamp(),
               likes: [],
               dislikes: [],
@@ -5303,8 +5331,11 @@ window.submitPost = async function() {
 
       extractAndCountHashtags(text);
       textEl.value = '';
+      
+      // Nettoyage de l'interface après l'envoi
       if (typeof removeSelectedGif === 'function') removeSelectedGif('post');
       if (typeof removeSelectedMedia === 'function') removeSelectedMedia();
+      if (typeof removeSelectedAudio === 'function') removeSelectedAudio(); // On vide la mémoire audio
 
       const charCountEl = document.getElementById('char-count');
       if (charCountEl) {
@@ -5315,7 +5346,7 @@ window.submitPost = async function() {
   } catch (error) {
       console.error("Erreur de publication :", error);
       if (errMsg) {
-          errMsg.innerText = "Erreur d'envoi. Le fichier est probablement trop lourd pour la base de données.";
+          errMsg.innerText = "Erreur d'envoi.";
           errMsg.style.color = '#ff4d4d';
           errMsg.style.display = 'block';
       }
@@ -5402,6 +5433,347 @@ window.cancelPollHover = function() {
   clearTimeout(pollHoverTimeout);
   const tt = document.getElementById('globalPollTooltip');
   if (tt) tt.style.opacity = '0';
+};
+
+/* ======= LOGIQUE D'ENREGISTREMENT ET LECTURE AUDIO ======= */
+let audioStream, mediaRecorder, audioChunks, audioInterval, audioCtx, analyser, animFrame;
+let recStart = 0;
+let isRecording = false;
+
+window.globalAudio = new Audio();
+window.globalAudioId = null;
+window.globalAudioTimer = null;
+
+// 1. Enregistrement de l'audio
+window.toggleAudioRecord = async function() {
+    const btn = document.getElementById('btn-audio-record');
+    const previewWrap = document.getElementById('post-audio-preview-wrap');
+    const playBtn = document.getElementById('audio-preview-playbtn');
+    const timerEl = document.getElementById('timer-preview');
+    const canvas = document.getElementById('canvas-preview');
+
+    if (isRecording) {
+        stopAudioRecording();
+        return;
+    }
+
+    // Efface les autres médias sélectionnés pour ne pas avoir de conflit
+    if(typeof removeSelectedGif === 'function') removeSelectedGif('post');
+    if(typeof window.removeSelectedMedia === 'function') window.removeSelectedMedia();
+
+    try {
+        audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
+        mediaRecorder = new MediaRecorder(audioStream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                window.selectedMediaDataUrl = reader.result;
+                // Hack pour valider la condition isAudio du script submitPost existant
+                window.selectedMediaFile = new File([blob], "audio.webm", { type: "audio/webm" });
+                
+                playBtn.style.display = 'flex';
+				document.getElementById('speedbtn-preview').style.display = 'flex';
+                document.getElementById('progress-preview').style.width = '0%';
+                previewWrap.dataset.audiourl = reader.result;
+                
+                // Dessine l'onde finale
+                getUserMixedColor(currentUser.uid).then(col => {
+                    renderStaticWaveform(reader.result, 'canvas-preview', col);
+                });
+            };
+            reader.readAsDataURL(blob);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+		const speedPreview = document.getElementById('speedbtn-preview');
+        speedPreview.style.display = 'none';
+        speedPreview.dataset.speed = "1";
+        speedPreview.innerText = "1x";
+        document.getElementById('progress-preview').style.width = '0%';
+        recStart = Date.now();
+        btn.style.color = '#ff4d4d'; // Indique l'enregistrement
+
+        previewWrap.style.display = 'flex';
+        playBtn.style.display = 'none';
+        timerEl.innerText = "60s";
+
+        // Analyse en direct pour afficher le spectre "vivant"
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(audioStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        source.connect(analyser);
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const ctx = canvas.getContext('2d');
+        let userCol = await getUserMixedColor(currentUser.uid);
+
+function drawLive() {
+            if(!isRecording) return;
+            animFrame = requestAnimationFrame(drawLive);
+            analyser.getByteFrequencyData(dataArray);
+            
+            const rectWidth = canvas.clientWidth || 200;
+            if (rectWidth > 0 && canvas.width !== rectWidth) canvas.width = rectWidth;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = userCol;
+            
+            const barWidth = 2;
+            const gap = 1;
+            const step = barWidth + gap;
+            const totalBars = Math.floor(canvas.width / step);
+            
+            for(let i = 0; i < totalBars; i++) {
+                // On répartit les données de l'analyseur sur nos barres fixes
+                let dataIndex = Math.floor((i / totalBars) * bufferLength);
+                let val = dataArray[dataIndex] || 0;
+                
+                let barHeight = (val/255) * canvas.height;
+                if (barHeight < 2) barHeight = 2;
+                
+                let x = i * step;
+                ctx.fillRect(x, (canvas.height - barHeight)/2, barWidth, barHeight);
+            }
+        }
+        drawLive();
+
+        // Limite stricte à 60s
+        audioInterval = setInterval(() => {
+            let elapsed = Math.floor((Date.now() - recStart) / 1000);
+            let left = 60 - elapsed;
+            if(left <= 0) {
+                stopAudioRecording();
+                timerEl.innerText = "00:00";
+            } else {
+                timerEl.innerText = left + "s";
+            }
+        }, 1000);
+
+    } catch(e) {
+        alert("Impossible d'accéder au micro.");
+    }
+};
+
+window.stopAudioRecording = function() {
+    if(!isRecording) return;
+    isRecording = false;
+    mediaRecorder.stop();
+    audioStream.getTracks().forEach(t => t.stop());
+    clearInterval(audioInterval);
+    cancelAnimationFrame(animFrame);
+    if(audioCtx && audioCtx.state !== 'closed') audioCtx.close();
+    document.getElementById('btn-audio-record').style.color = '';
+};
+
+window.removeSelectedAudio = function() {
+    if(isRecording) stopAudioRecording();
+    window.selectedMediaDataUrl = null;
+    window.selectedMediaFile = null;
+    document.getElementById('post-audio-preview-wrap').style.display = 'none';
+    document.getElementById('post-audio-preview-wrap').dataset.audiourl = '';
+    if(globalAudioId === 'preview') {
+        globalAudio.pause();
+        clearInterval(globalAudioTimer);
+    }
+};
+
+window.buildCustomAudioPlayerHTML = function(url, id) {
+    setTimeout(async () => {
+        let color = 'var(--accent)'; 
+        try {
+            let postObj = window.allPosts.find(p => p.id === id);
+            if(postObj && postObj.userColor) color = postObj.userColor;
+            else {
+                for(let pid in window.postComments) {
+                    let c = window.postComments[pid].find(x => x.id === id);
+                    if(c && c.userColor) { color = c.userColor; break; }
+                }
+            }
+        } catch(e) {}
+        renderStaticWaveform(url, 'canvas-' + id, color);
+    }, 50);
+
+    return `
+    <div style="display:flex; align-items: center; gap: 8px; background: var(--surface2); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 6px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;" id="audio-post-${id}" data-audiourl="${url}">
+        <button type="button" class="minimal-gif-btn" id="playbtn-${id}" style="padding: 4px; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" onclick="event.stopPropagation(); window.togglePostAudio('${id}')">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        
+        <button type="button" class="minimal-gif-btn" id="speedbtn-${id}" data-speed="1" onclick="event.stopPropagation(); window.cycleAudioSpeed('${id}')" style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: bold; padding: 2px 4px; border-radius: 4px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">1x</button>
+        
+        <span id="timer-${id}" style="font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text); min-width: 35px; flex-shrink: 0;">00:00</span>
+        
+        <div style="flex: 1; min-width: 0; position: relative; cursor: pointer; display: flex; align-items: center;" onclick="event.stopPropagation(); window.seekAudio(event, '${id}')">
+            <canvas id="canvas-${id}" width="400" height="60" style="width: 100%; height: 30px; display: block;"></canvas>
+            <div id="progress-${id}" style="position: absolute; top: 0; left: 0; bottom: 0; width: 0%; background: var(--text); opacity: 0.15; pointer-events: none; border-radius: 2px;"></div>
+        </div>
+    </div>`;
+};
+
+// 3. Gestionnaire unifié de la lecture
+window.togglePostAudio = function(id) {
+    const container = document.getElementById('audio-post-' + id) || document.getElementById('post-audio-preview-wrap');
+    const url = container.dataset.audiourl;
+    const btn = document.getElementById(id === 'preview' ? 'audio-preview-playbtn' : 'playbtn-' + id);
+    const timerEl = document.getElementById(id === 'preview' ? 'timer-preview' : 'timer-' + id);
+    
+    const PLAY_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    const PAUSE_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+    if (globalAudioId === id && !globalAudio.paused) {
+        globalAudio.pause();
+        btn.innerHTML = PLAY_ICON;
+        clearInterval(globalAudioTimer);
+    } else {
+        if (globalAudioId && globalAudioId !== id) {
+            const prevBtn = document.getElementById(globalAudioId === 'preview' ? 'audio-preview-playbtn' : 'playbtn-' + globalAudioId);
+            if(prevBtn) prevBtn.innerHTML = PLAY_ICON;
+            globalAudio.pause();
+            clearInterval(globalAudioTimer);
+        }
+        if (globalAudio.src !== url) globalAudio.src = url;
+        globalAudioId = id;
+        globalAudio.play();
+        btn.innerHTML = PAUSE_ICON;
+
+// Applique la vitesse actuelle choisie par l'utilisateur
+        const speedBtnId = id === 'preview' ? 'speedbtn-preview' : 'speedbtn-' + id;
+        const speedBtn = document.getElementById(speedBtnId);
+        if (speedBtn) {
+            globalAudio.playbackRate = parseFloat(speedBtn.dataset.speed || 1);
+        }
+
+        // Timer accéléré à 50ms pour une barre de progression très fluide
+        globalAudioTimer = setInterval(() => {
+            if(!globalAudio.duration) return;
+            let currentTime = globalAudio.currentTime;
+            let duration = globalAudio.duration;
+            let left = Math.max(0, duration - currentTime);
+            timerEl.innerText = window.formatAudioTime(left);
+            
+            // Animation de la barre de progression
+            let progressPercent = (currentTime / duration) * 100;
+            let progressEl = document.getElementById(id === 'preview' ? 'progress-preview' : 'progress-' + id);
+            if (progressEl) progressEl.style.width = progressPercent + '%';
+
+            if (globalAudio.ended) {
+                clearInterval(globalAudioTimer);
+                btn.innerHTML = PLAY_ICON;
+                timerEl.innerText = window.formatAudioTime(duration);
+                if (progressEl) progressEl.style.width = '0%'; // Remet la barre à zéro
+            }
+        }, 50);
+    }
+};
+
+window.formatAudioTime = function(sec) {
+    if (isNaN(sec) || !isFinite(sec)) return "00:00";
+    let s = Math.floor(sec);
+    let m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? "0"+m : m) + ":" + (s < 10 ? "0"+s : s);
+};
+
+window.renderStaticWaveform = async function(audioUrl, canvasId, color) {
+    const canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+    
+    // Résolution interne fixe (haute qualité)
+    canvas.width = 400;
+    canvas.height = 60;
+    
+    const ctx = canvas.getContext('2d');
+
+    // Ligne plate temporaire
+    ctx.fillStyle = color;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, canvas.height/2, canvas.width, 2);
+
+    try {
+        const ac = new (window.AudioContext || window.webkitAudioContext)();
+        const res = await fetch(audioUrl);
+        const arrayBuffer = await res.arrayBuffer();
+        const audioBuffer = await ac.decodeAudioData(arrayBuffer);
+        const rawData = audioBuffer.getChannelData(0);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = color;
+
+        // Paramètres des barres adaptés à 400px
+        const barWidth = 3; 
+        const gap = 2;      
+        const step = barWidth + gap;
+        
+        const totalBars = Math.floor(canvas.width / step);
+        const blockSize = Math.max(1, Math.floor(rawData.length / totalBars));
+
+        for (let i = 0; i < totalBars; i++) {
+            let sum = 0;
+            let count = 0;
+            for (let j = 0; j < blockSize; j++) {
+                let index = i * blockSize + j;
+                if (index < rawData.length) {
+                    sum += Math.abs(rawData[index]);
+                    count++;
+                }
+            }
+            let avg = count > 0 ? sum / count : 0;
+            let barHeight = avg * canvas.height * 6; 
+            
+            if(barHeight > canvas.height) barHeight = canvas.height;
+            if(barHeight < 2) barHeight = 2;
+
+            let x = i * step;
+            ctx.fillRect(x, (canvas.height - barHeight)/2, barWidth, barHeight);
+        }
+
+        const timerEl = document.getElementById(canvasId === 'canvas-preview' ? 'timer-preview' : 'timer-' + canvasId.replace('canvas-', ''));
+        if (timerEl && (timerEl.innerText === "00:00" || timerEl.innerText === "60s" || timerEl.innerText.includes("s"))) {
+            timerEl.innerText = window.formatAudioTime(audioBuffer.duration);
+        }
+    } catch(e) {
+        console.error("Erreur création spectre:", e);
+    }
+};
+
+// Gère le clic sur le bouton de vitesse (1x -> 1.25x -> 1.5x -> 1.75x -> 2x)
+window.cycleAudioSpeed = function(id) {
+    const speeds = [1, 1.25, 1.5, 1.75, 2];
+    const btnId = id === 'preview' ? 'speedbtn-preview' : 'speedbtn-' + id;
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    
+    let currentSpeed = parseFloat(btn.dataset.speed || 1);
+    let nextIndex = (speeds.indexOf(currentSpeed) + 1) % speeds.length;
+    let newSpeed = speeds[nextIndex];
+    
+    btn.dataset.speed = newSpeed;
+    btn.innerText = newSpeed + 'x';
+    
+    if (window.globalAudioId === id && window.globalAudio) {
+        window.globalAudio.playbackRate = newSpeed;
+    }
+};
+
+// Permet d'avancer/reculer dans l'audio en cliquant sur le spectre
+window.seekAudio = function(e, id) {
+    if (window.globalAudioId !== id || !window.globalAudio || !window.globalAudio.duration) return;
+    
+    const track = e.currentTarget;
+    const rect = track.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percent = Math.max(0, Math.min(1, clickX / rect.width));
+    
+    window.globalAudio.currentTime = percent * window.globalAudio.duration;
+    
+    let progressEl = document.getElementById(id === 'preview' ? 'progress-preview' : 'progress-' + id);
+    if (progressEl) progressEl.style.width = (percent * 100) + '%';
 };
 
 </script>
