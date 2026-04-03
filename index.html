@@ -4342,50 +4342,69 @@ window.openHistoryEditor = async function() {
     dateMajorite.setFullYear(dateMajorite.getFullYear() + 18);
 
     const years = ['2022', '2017', '2012', '2007', '2002', '1995'];
-    let formHtml = '';
-    let hasElections = false;
-
-    // 3. Créer le formulaire
+    let eligibleYears = [];
+    
     years.forEach(year => {
         const elecDate = new Date(`${year}-04-20`);
         if (elecDate >= dateMajorite) {
-            hasElections = true;
-            ['T1', 'T2'].forEach(tour => {
-                const histKey = `pres_${year}_${tour}`;
-                const currentVal = history[histKey] || '';
-                
-                formHtml += `
-                <div style="margin-bottom: 12px;">
-                    <label style="display:block; font-size:11px; margin-bottom:4px; color:var(--text-dim);">Présidentielle ${year} - ${tour === 'T1' ? '1er' : '2nd'} Tour</label>
-                    <select id="hist_${histKey}" class="minimal-gif-btn4" style="width:100%; padding:8px; border-radius:6px; background:var(--bg); color:var(--text); border:1px solid var(--border);">
-                        <option value="" style="color: var(--text-dim);">Non renseigné</option>
-                        <option value="ABS" style="color: var(--text-dim); font-style: italic;" ${currentVal==='ABS'?'selected':''}>Abstention</option>
-                        <option value="BLANC" style="color: var(--text-dim); font-style: italic;" ${currentVal==='BLANC'?'selected':''}>Vote Blanc / Nul</option>
-                `;
-                
-                const candidatsList = HISTORICAL_DATA[year][tour].candidats;
-                Object.keys(candidatsList).forEach(code => {
-                    const candName = candidatsList[code];
-                    const partyName = getPartyName(code, year);
-                    const color = COULEURS[code] || 'var(--text)';
-                    formHtml += `<option value="${code}" style="color: ${color}; font-weight: bold;" ${currentVal===code?'selected':''}>${candName} (${partyName})</option>`;
-                });
-                
-                formHtml += `</select></div>`;
-            });
+            eligibleYears.push(year);
         }
     });
 
-    if (!hasElections) {
+    if (eligibleYears.length === 0) {
         return alert("Vous n'étiez pas en âge de voter lors des élections passées !");
     }
 
-    // MODIFICATION ICI : On rend le fond noir défilant (overflow-y: auto) 
-    // et on enlève la restriction à l'intérieur de la carte !
+    // 3. Créer le menu déroulant dynamique des années (en haut à droite)
+    let selectOptionsHtml = '';
+    eligibleYears.forEach(year => {
+        selectOptionsHtml += `<option value="${year}">${year}</option>`;
+    });
+
+    // 4. Créer les blocs de formulaire (1 bloc par année)
+    let formHtml = '';
+    eligibleYears.forEach((year, index) => {
+        // Seule la première année (la plus récente) est affichée par défaut, les autres sont cachées
+        const isVisible = index === 0 ? 'block' : 'none';
+        formHtml += `<div id="hist_block_${year}" class="history-year-block" style="display: ${isVisible};">`;
+        
+        ['T1', 'T2'].forEach(tour => {
+            const histKey = `pres_${year}_${tour}`;
+            const currentVal = history[histKey] || '';
+            
+            formHtml += `
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; font-size:11px; margin-bottom:4px; color:var(--text-dim);">Présidentielle ${year} - ${tour === 'T1' ? '1er' : '2nd'} Tour</label>
+                <select id="hist_${histKey}" class="minimal-gif-btn4" style="width:100%; padding:8px; border-radius:6px; background:var(--bg); color:var(--text); border:1px solid var(--border);">
+                    <option value="" style="color: var(--text-dim);">Non renseigné</option>
+                    <option value="ABS" style="color: var(--text-dim); font-style: italic;" ${currentVal==='ABS'?'selected':''}>Abstention</option>
+                    <option value="BLANC" style="color: var(--text-dim); font-style: italic;" ${currentVal==='BLANC'?'selected':''}>Vote Blanc / Nul</option>
+            `;
+            
+            const candidatsList = HISTORICAL_DATA[year][tour].candidats;
+            Object.keys(candidatsList).forEach(code => {
+                const candName = candidatsList[code];
+                const partyName = getPartyName(code, year);
+                const color = COULEURS[code] || 'var(--text)';
+                formHtml += `<option value="${code}" style="color: ${color}; font-weight: bold;" ${currentVal===code?'selected':''}>${candName} (${partyName})</option>`;
+            });
+            
+            formHtml += `</select></div>`;
+        });
+        formHtml += `</div>`;
+    });
+
+    // 5. Construire la modale avec le select à côté du titre
     const modalHtml = `
     <div id="history-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:flex-start; justify-content:center; overflow-y:auto; padding: 40px 0;" onclick="this.remove()">
-        <div class="profile-modal-content" style="margin: auto; overflow: visible;" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; margin-bottom:15px; font-size:18px;">Mon Historique</h2>
+        <div class="profile-modal-content" style="margin: auto; overflow: visible; width: 90%; max-width: 380px;" onclick="event.stopPropagation()">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:10px;">
+                <h2 style="margin:0; font-size:18px; white-space:nowrap;">Mon Historique</h2>
+                <select id="selectHistoryYear" class="minimal-gif-btn4" onchange="changeHistoryEditorYear(this.value)">
+                    ${selectOptionsHtml}
+                </select>
+            </div>
             
             <div>
                 ${formHtml}
@@ -4400,9 +4419,20 @@ window.openHistoryEditor = async function() {
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    // Initialise le design custom pour les nouveaux selects ajoutés dans le DOM
+    // Initialise le design custom pour TOUS les selects de la modale (l'année + les candidats)
     const selects = document.querySelectorAll("#history-modal select.minimal-gif-btn4");
     selects.forEach(select => buildCustomSelect(select));
+};
+
+// Fonction pour cacher tous les blocs et n'afficher que celui de l'année sélectionnée
+window.changeHistoryEditorYear = function(year) {
+    document.querySelectorAll('.history-year-block').forEach(block => {
+        block.style.display = 'none';
+    });
+    const activeBlock = document.getElementById(`hist_block_${year}`);
+    if (activeBlock) {
+        activeBlock.style.display = 'block';
+    }
 };
 
 window.saveHistoryEditor = function() {
