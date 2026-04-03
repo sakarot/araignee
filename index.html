@@ -26,6 +26,11 @@
     --HZ: #70c8f8; --LR: #2c75ff; --DF: #003870; --RN: #0d3890; --RQ: #555555;
 }
 
+.desktop-only { display: flex; }
+@media (max-width: 768px) {
+    .desktop-only { display: none !important; }
+}
+
 .theme-toggle-btn {
     position: absolute;
     top: 24px;
@@ -1930,7 +1935,10 @@ body.light-mode #mobile-feed-header {
             <div id="inline-history-container" style="display: none; flex-direction: column; width: 100%; margin-top: 16px;">
                 <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 12px; gap: 8px;">
                     <span style="font-size: 13px; font-weight: bold; color: var(--text);">Historique de vote</span>
-                <button class="minimal-gif-btn" style="font-size: 10px; padding: 2px 6px;" onclick="openHistoryEditor()">Modifier</button>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="toggle-history-tour" class="minimal-gif-btn" style="font-size: 10px; padding: 2px 6px; border-color: var(--accent); color: var(--accent);" onclick="toggleProfileTour()">T1</button>
+                        <button class="minimal-gif-btn" style="font-size: 10px; padding: 2px 6px;" onclick="openHistoryEditor()">Modifier</button>
+                    </div>
                 </div>
                 <div id="my-profile-history-list" class="vote-history-list" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
                     <span style="font-size: 11px; color: var(--text-dim); font-style: italic; text-align: center;">Chargement...</span>
@@ -2137,7 +2145,7 @@ body.light-mode #mobile-feed-header {
         </div>
       </div>
 	  
-	  <div id="desktop-feed-header" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); margin-bottom: 8px;">
+	  <div id="desktop-feed-header" class="desktop-only" style="padding: 12px 16px; justify-content: space-between; align-items: center; border-bottom: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); margin-bottom: 8px;">
         <span style="font-size: 12px; font-weight: bold; color: var(--text-dim);">Fil d'actualité</span>
         <select id="feedSortSelect" class="minimal-gif-btn4" onchange="setFeedSort(this.value); if(document.getElementById('mobileFeedSortSelect')) document.getElementById('mobileFeedSortSelect').value = this.value;">
             <option value="recent" selected>Récents</option>
@@ -3799,11 +3807,20 @@ function renderFeed() {
     let hasDisliked = currentUser ? (post.dislikes || []).includes(currentUser.uid) : false;
     
     let imgHtml = '';
-    if (post.gifUrl) {
+    if (post.mediaUrls && post.mediaUrls.length > 0) {
+        let gridHtml = post.mediaUrls.map(media => {
+            if (media.isVideo) return `<video src="${media.url}" class="post-img" controls style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; background:#000; margin:0;"></video>`;
+            else return `<img src="${media.url}" class="post-img" style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; margin:0;" onerror="this.style.display='none'">`;
+        }).join('');
+        
+        let cols = post.mediaUrls.length === 1 ? '1fr' : '1fr 1fr';
+        imgHtml = `<div style="display: grid; grid-template-columns: ${cols}; gap: 6px; margin-top: 8px;">${gridHtml}</div>`;
+        
+    } else if (post.gifUrl) {
+       // --- ANCIENNE LOGIQUE (GIF, Audio et vieux posts) ---
        if (post.isVideo) {
            imgHtml = `<video src="${post.gifUrl}" class="post-img" controls style="max-height: 280px; border-radius: 8px; margin-top: 8px; width: 100%; object-fit: cover; background: #000;"></video>`;
        } else if (post.isAudio) {
-           // NOUVEAU LECTEUR AUDIO
            imgHtml = buildCustomAudioPlayerHTML(post.gifUrl, post.id);
        } else {
            imgHtml = `<img src="${post.gifUrl}" class="post-img" onerror="this.style.display='none'" alt="Image/GIF">`;
@@ -4948,12 +4965,23 @@ function renderPostComments(postId) {
 function buildCommentNodeHtml(c, allComments, isRoot, focusPath = [], focusId = null, depth = 0) {
     let hasLiked = currentUser ? (c.likes || []).includes(currentUser.uid) : false;
     let hasDisliked = currentUser ? (c.dislikes || []).includes(currentUser.uid) : false;
-   let imgHtml = '';
-    if (c.gifUrl) {
+    let imgHtml = '';
+    if (c.mediaUrls && c.mediaUrls.length > 0) {
+        let gridHtml = c.mediaUrls.map(media => {
+            if (media.isVideo) return `<video src="${media.url}" class="post-img" controls style="width:100%; max-height:180px; object-fit:cover; border-radius:8px; background:#000; margin:0;"></video>`;
+            else return `<img src="${media.url}" class="post-img" style="width:100%; max-height:180px; object-fit:cover; border-radius:8px; margin:0;" onerror="this.style.display='none'">`;
+        }).join('');
+        
+        // S'il n'y a qu'une image, elle prend toute la largeur. Sinon, ça fait 2 colonnes.
+        let cols = c.mediaUrls.length === 1 ? '1fr' : '1fr 1fr';
+        imgHtml = `<div style="display: grid; grid-template-columns: ${cols}; gap: 6px; margin-top: 6px;">${gridHtml}</div>`;
+        
+    } else if (c.gifUrl) {
+       // --- ANCIENNE LOGIQUE (GIF, Audio et vieux commentaires) ---
        if (c.isVideo) {
            imgHtml = `<video src="${c.gifUrl}" class="post-img" controls style="max-height: 180px; width: 100%; object-fit: cover; background: #000; border-radius: 8px; margin-top: 6px;"></video>`;
        } else if (c.isAudio) {
-           // NOUVEAU LECTEUR AUDIO POUR LES COMMENTAIRES
+           // LECTEUR AUDIO POUR LES COMMENTAIRES
            imgHtml = buildCustomAudioPlayerHTML(c.gifUrl, c.id);
        } else {
            imgHtml = `<img src="${c.gifUrl}" class="post-img" style="max-height: 150px; border-radius: 8px; margin-top: 6px;" onerror="this.style.display='none'">`;
@@ -6043,15 +6071,14 @@ window.submitPost = async function() {
   const text = textEl.value.trim();
 
   const gifUrlFromTenor = selectedGifs['post'] || "";
-  // On récupère la donnée média (qui contient la photo compressée, la vidéo OU l'audio)
   const mediaUrlsArray = window.selectedMediaDataUrls || [];
-  const finalMediaUrls = mediaUrlsArray.length > 0 ? mediaUrlsArray : (gifUrlFromTenor ? [{ url: gifUrlFromTenor, isVideo: false }] : []);
+  const audioDataUrl = (window.selectedMediaFile && window.selectedMediaFile.type.startsWith('audio/')) ? window.selectedMediaDataUrl : null;
 
   const errMsg = document.getElementById('post-error-msg');
   if (errMsg) errMsg.style.display = 'none';
 
-  // Permet l'envoi s'il n'y a pas de texte MAIS qu'il y a un audio (ou autre média)
-  if (!text && !gifUrlFromTenor && !mediaDataUrl) return;
+  // Sécurité anti-crash
+  if (!text && !gifUrlFromTenor && mediaUrlsArray.length === 0 && !audioDataUrl) return;
 
   const submitBtn = document.querySelector('button[onclick="submitPost()"]');
   const originalBtnText = submitBtn.innerText;
@@ -6059,17 +6086,24 @@ window.submitPost = async function() {
   submitBtn.innerText = "Publication...";
 
   try {
-      let finalMediaUrl = mediaDataUrl || gifUrlFromTenor;
-      
-      // Détection automatique du type de média
-      let isVideo = window.selectedMediaFile && window.selectedMediaFile.type.startsWith('video/');
-      let isAudio = window.selectedMediaFile && window.selectedMediaFile.type.startsWith('audio/');
+      let isAudio = !!audioDataUrl;
+      let isVideo = false;
+      let finalGifUrl = "";
+
+      // On route proprement le média
+      if (isAudio) {
+          finalGifUrl = audioDataUrl;
+      } else if (mediaUrlsArray.length > 0) {
+          finalGifUrl = mediaUrlsArray[0].url; // Sauvegarde la 1ère image pour la base
+          isVideo = mediaUrlsArray[0].isVideo;
+      } else if (gifUrlFromTenor) {
+          finalGifUrl = gifUrlFromTenor;
+      }
 
       const pseudoUser = currentUser.displayName || currentUser.email.split('@')[0];
       const partyClass = await getUserPartyClass(currentUser.uid);
       const userColor = await getUserMixedColor(currentUser.uid);
 
-      // Si c'est une réponse à un commentaire (Discussion)
       if (window.mainReplyTarget) {
           const target = window.mainReplyTarget;
           await db.collection("posts").doc(target.postId).collection("comments").add({
@@ -6078,7 +6112,9 @@ window.submitPost = async function() {
               partyClass: partyClass,
               userColor: userColor,
               text: text,
-              mediaUrls: finalMediaUrls, 
+              gifUrl: finalGifUrl, 
+              mediaUrls: mediaUrlsArray, // Support des 4 images !
+              isVideo: isVideo,
               isAudio: isAudio,
               parentId: target.commentId,
               timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -6086,23 +6122,20 @@ window.submitPost = async function() {
               dislikes: []
           });
 
-          await db.collection("posts").doc(target.postId).set({
-              commentCount: firebase.firestore.FieldValue.increment(1)
-          }, { merge: true });
-
+          await db.collection("posts").doc(target.postId).set({ commentCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
           openAncestors(target.postId, target.commentId);
           cancelMainReply(); 
       } else {
-          // Si c'est un nouveau Post
           await db.collection("posts").add({
               uid: currentUser.uid,
               pseudo: pseudoUser,
               partyClass: partyClass,
               userColor: userColor,
               text: text,
-              gifUrl: finalMediaUrl,
+              gifUrl: finalGifUrl,
+              mediaUrls: mediaUrlsArray, // Support des 4 images !
               isVideo: isVideo,
-              isAudio: isAudio, // <- AJOUT CRUCIAL ICI
+              isAudio: isAudio, 
               timestamp: firebase.firestore.FieldValue.serverTimestamp(),
               likes: [],
               dislikes: [],
@@ -6112,20 +6145,13 @@ window.submitPost = async function() {
 
       extractAndCountHashtags(text);
       textEl.value = '';
-	  document.getElementById('post-text').dispatchEvent(new Event('input'));
+      document.getElementById('post-text').dispatchEvent(new Event('input'));
       
-      // Nettoyage de l'interface après l'envoi
       if (typeof removeSelectedGif === 'function') removeSelectedGif('post');
       if (typeof removeSelectedMedia === 'function') removeSelectedMedia();
-      if (typeof removeSelectedAudio === 'function') removeSelectedAudio(); // On vide la mémoire audio
-	  
-	  closeMobileComposer();
-
-      const charCountEl = document.getElementById('char-count');
-      if (charCountEl) {
-          charCountEl.textContent = '0 / 300';
-          charCountEl.style.color = 'var(--text-dim)';
-      }
+      if (typeof removeSelectedAudio === 'function') removeSelectedAudio(); 
+      
+      closeMobileComposer();
 
   } catch (error) {
       console.error("Erreur de publication :", error);
@@ -6657,24 +6683,23 @@ window.prepareMainReply = function(postId, commentId, pseudo) {
     const scrollThreshold = 15; // Tolérance pour éviter de clignoter au moindre pixel
 
     function handleScroll(e) {
-        if (window.innerWidth > 768) return; // Uniquement sur mobile
-        
-        // Si le panneau de texte est ouvert, on bloque les animations de scroll
+        if (window.innerWidth > 768) return; 
         if (document.body.classList.contains('mobile-composer-open')) return;
 
-        // Récupérer la position de scroll selon l'élément (window ou div interne)
         const currentScrollY = e.target.scrollTop || window.scrollY;
 
+        // CORRECTION DU BUG DE REBOND : Ancrage solide en haut de l'écran
+        if (currentScrollY <= 0) {
+            document.body.classList.remove('nav-hidden');
+            lastScrollY = 0;
+            return;
+        }
+
         if (currentScrollY > lastScrollY + scrollThreshold) {
-            // SCROLL VERS LE BAS : On cache la nav et le logo
             document.body.classList.add('nav-hidden');
             document.body.classList.remove('scrolling-up');
-            
         } else if (currentScrollY < lastScrollY - scrollThreshold) {
-            // SCROLL VERS LE HAUT : On affiche la nav
             document.body.classList.remove('nav-hidden');
-            
-            // On affiche le logo UNIQUEMENT si on n'est pas tout en haut (pour ne pas superposer avec le header normal)
             if (currentScrollY > 60) { 
                 document.body.classList.add('scrolling-up');
             } else {
@@ -6682,8 +6707,7 @@ window.prepareMainReply = function(postId, commentId, pseudo) {
             }
         }
         
-        // Mettre à jour la dernière position
-        lastScrollY = currentScrollY <= 0 ? 0 : currentScrollY;
+        lastScrollY = currentScrollY;
     }
 
     const chatFeed = document.getElementById('chat-feed'); // <- Modifié ici
