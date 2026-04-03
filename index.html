@@ -817,6 +817,17 @@ body.light-mode .sticky-chat-footer {
     backdrop-filter: blur(3px) !important;
     -webkit-backdrop-filter: blur(3px) !important;
 }
+
+header, .main-header, .top-bar, .header-container {
+        display: none !important;
+    }
+
+    /* Remonter l'application tout en haut puisqu'il n'y a plus d'en-tête */
+    .page-wrapper {
+        height: 100dvh !important;
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
   
   /* ── Le panneau s'ouvre proprement au-dessus de la navigation ── */
   body.mobile-composer-open .community-footer {
@@ -1459,6 +1470,241 @@ body.light-mode #mobile-feed-header {
   #user-dropdown, #friends-dropdown {
       z-index: 9995 !important;
   }
+  
+  /* ── GESTION DES 3 ONGLETS (Corrections) ── */
+    #mainContent, #communitySidebar { display: none !important; }
+
+    /* ONGLET 1 : COMMUNAUTÉ (Par défaut) */
+    body:not(.mobile-show-sim):not(.mobile-show-profile) #communitySidebar {
+        display: flex !important;
+        width: 100% !important;
+    }
+
+    /* ONGLET 2 : SIMULATEUR */
+    body.mobile-show-sim #mainContent {
+        display: block !important;
+        padding: 0 !important;
+    }
+    body.mobile-show-sim .site-header, 
+    body.mobile-show-sim #mobile-profile-section {
+        display: none !important; /* On cache le header et le profil dans le simulateur */
+    }
+    body.mobile-show-sim .container {
+        padding: 16px 16px 90px 16px !important; /* De la place en bas pour la navigation */
+    }
+
+    /* ONGLET 3 : MON PROFIL */
+    body.mobile-show-profile #mainContent {
+        display: block !important;
+        padding: 0 !important;
+    }
+    /* On cache TOUT le simulateur et l'en-tête... */
+    body.mobile-show-profile .container > * {
+        display: none !important; 
+    }
+    body.mobile-show-profile .container {
+        padding: 16px 16px 90px 16px !important;
+    }
+    /* ... ET on affiche UNIQUEMENT le bloc profil ! */
+    body.mobile-show-profile .container > #mobile-profile-section {
+        display: flex !important;
+        flex-direction: column;
+        width: 100% !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    /* Beauté de l'onglet Profil */
+    body.mobile-show-profile #mobile-profile-section > div {
+        background: var(--surface2);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.05);
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* On recentre la colonne de droite (Votes de la commu) */
+    body.mobile-show-profile .vote-panel-right {
+        border-left: none !important;
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+        text-align: center;
+    }
+    body.mobile-show-profile #community-leaderboard {
+        align-items: center;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── AMÉLIORATION DU SIMULATEUR SUR MOBILE ── */
+    /* Réduction des marges pour gagner de l'espace */
+    .controls-panel, .chart-card, .t2-card, .data-table-card {
+        padding: 16px !important;
+    }
+    /* Les curseurs passent les uns sous les autres au lieu de s'écraser */
+    .sliders-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    .controls-header {
+        flex-direction: column;
+        align-items: flex-start !important; /* On remet à gauche */
+        text-align: left;
+        gap: 16px;
+    }
+    
+    .candidate-selector {
+        width: 100%;
+        display: flex;
+        justify-content: space-between !important;
+    }
+	
+	.candidate-selector button {
+      flex: 1; /* Les boutons Attal/Philippe prennent chacun 50% de l'espace */
+  }
+
+  /* ── SECURITÉ DEBORDEMENT CARTES ── */
+  .map-container, .map-card, .map-container svg.main-map {
+      overflow: visible !important;
+  }
+
+    /* ── TEXTE DES REPORTS (Justifié) ── */
+    /* On cible le paragraphe dans le panneau de contrôle */
+    .controls-panel p,
+    .controls-panel div[style*="font-size: 13px"] {
+        text-align: justify !important;
+        hyphens: auto; /* Ajoute des tirets propres si un mot est trop long en bout de ligne */
+        margin-bottom: 16px;
+    }
+    .candidate-selector button {
+        flex: 1; /* Les boutons s'étirent équitablement */
+    }
+    
+	/* ── CORRECTION DES DÉBORDEMENTS (Overflow) ── */
+    
+    body.mobile-show-sim #mainContent,
+    body.mobile-show-sim .container {
+        overflow-x: hidden !important; 
+        max-width: 100vw !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* Les cartes classiques ne débordent pas */
+    .controls-panel, .chart-card, .t2-card, .data-table-card {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden;
+    }
+
+    /* La carte géographique : on la laisse respirer pour ne pas couper la Corse */
+    .map-container, .map-card {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: visible !important; /* C'est ça qui sauve la Corse ! */
+        padding: 10px !important; /* Un peu d'air autour */
+    }
+
+    /* On s'assure que le dessin vectoriel (SVG) garde ses proportions */
+    .map-container svg {
+        width: 100% !important;
+        height: auto !important;
+        display: block; /* Supprime l'espace fantôme sous la carte */
+    }
+	
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+	
+	/* ── REORGANISATION MON PROFIL (Mobile) ── */
+    body.mobile-show-profile .vote-panel-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    body.mobile-show-profile .vote-panel-left {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        text-align: center;
+    }
+    body.mobile-show-profile #voter-profile-view {
+        align-items: center !important; /* Centre pseudo et bio */
+        width: 100%;
+    }
+    body.mobile-show-profile .username-container {
+        padding: 8px 20px !important; /* Un peu plus grand pour faire joli */
+        border-radius: 20px !important;
+    }
+    body.mobile-show-profile #user-display-name {
+        font-size: 18px !important; /* Pseudo plus visible */
+    }
+    body.mobile-show-profile #bio-display-container {
+        margin-left: 0 !important;
+        justify-content: center;
+    }
+    body.mobile-show-profile #user-bio-text {
+        max-width: 100%;
+        white-space: normal; /* Autorise le retour à la ligne pour la bio */
+    }
+    
+    /* Vote 2027 centré et séparé */
+    body.mobile-show-profile #vote-2027-title {
+        display: block !important;
+    }
+    body.mobile-show-profile #vote-2027-container {
+        margin-top: 24px !important;
+        width: 100%;
+        border-top: 1px dashed rgba(255,255,255,0.1);
+        padding-top: 20px;
+    }
+    
+    /* Affiche l'historique sur mobile et cache le vieux bouton */
+    body.mobile-show-profile #inline-history-container {
+        display: flex !important;
+        border-top: 1px dashed rgba(255,255,255,0.1);
+        padding-top: 20px;
+    }
+    body.mobile-show-profile #desktop-history-btn {
+        display: none !important;
+    }
+
+    /* Style des lignes d'historique (comme le profil public) */
+    .inline-vote-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: color-mix(in srgb, var(--text-dim) 5%, transparent);
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Votes réels tout en bas */
+    body.mobile-show-profile .vote-panel-right {
+        width: 100%;
+        text-align: center;
+        border-left: none;
+        border-top: 1px dashed rgba(255,255,255,0.1);
+        padding-top: 20px;
+        margin-top: 0;
+    }
 
 }
 
@@ -1593,61 +1839,74 @@ body.light-mode #mobile-feed-header {
         </div>
       </header>
 
-      <div class="vote-panel-container">
+      <div id="mobile-profile-section" class="vote-panel-container">
         <div class="vote-panel-left">
+          
           <div id="voter-profile-view" style="display: none; flex-direction: column; align-items: flex-start; gap: 6px;">
             <div class="username-container" style="display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--text-dim) 6%, transparent); padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);">
               <span id="user-badge" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: transparent; transition: background 0.3s;"></span>
               <strong id="user-display-name" style="font-size: 15px; transition: color 0.3s;"></strong>
             </div>
-					  <div id="bio-display-container" style="display: flex; align-items: center; gap: 6px; margin-left: 4px;">
-      <span id="user-bio-text" style="font-size: 12px; color: var(--text-dim); font-style: italic; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Chargement...</span>
-      <button class="edit-pseudo-btn" onclick="startBioEdit()" title="Modifier la bio">✎</button>
-   
-          </div>
+            
+            <div id="bio-display-container" style="display: flex; align-items: center; gap: 6px; margin-left: 4px;">
+              <span id="user-bio-text" style="font-size: 12px; color: var(--text-dim); font-style: italic; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Chargement...</span>
+              <button class="edit-pseudo-btn" onclick="startBioEdit()" title="Modifier la bio">✎</button>
+            </div>
 
-    <div id="bio-edit-container" style="display: none; flex-direction: column; gap: 4px; width: 100%; min-width: 220px;">
-      <textarea id="bio-input" maxlength="150" rows="2" placeholder="Décrivez-vous brièvement..." style="background: var(--bg); color: var(--text); border: 1px solid var(--accent); border-radius: 6px; padding: 6px; font-size: 11px; resize: none; font-family: 'DM Sans', sans-serif;" oninput="updateBioCount()"></textarea>
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span id="bio-count" style="font-size: 10px; color: var(--text-dim); font-family: 'Space Mono', monospace;">0/150</span>
-        <div style="display: flex; gap: 4px;">
-<button type="button" class="minimal-gif-btn2"style="padding: 2px 8px; font-size: 10px;" onclick="saveBio()">OK</button>
-<button type="button" class="edit-pseudo-btn" style="padding: 0; font-size: 16px;" onclick="cancelBioEdit()" title="Annuler">×</button>
-        </div>
-      </div>
-    </div>
-	<div style="margin-left: 4px; margin-top: 10px;">
-      <button class="minimal-gif-btn" style="font-size: 10px; padding: 4px 8px;" onclick="openHistoryEditor()">Historique de vote</button>
-    </div>
-  </div>
+            <div id="bio-edit-container" style="display: none; flex-direction: column; gap: 4px; width: 100%; min-width: 220px;">
+              <textarea id="bio-input" maxlength="150" rows="2" placeholder="Décrivez-vous brièvement..." style="background: var(--bg); color: var(--text); border: 1px solid var(--accent); border-radius: 6px; padding: 6px; font-size: 11px; resize: none; font-family: 'DM Sans', sans-serif;" oninput="updateBioCount()"></textarea>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="bio-count" style="font-size: 10px; color: var(--text-dim); font-family: 'Space Mono', monospace;">0/150</span>
+                <div style="display: flex; gap: 4px;">
+                  <button type="button" class="minimal-gif-btn2" style="padding: 2px 8px; font-size: 10px;" onclick="saveBio()">OK</button>
+                  <button type="button" class="edit-pseudo-btn" style="padding: 0; font-size: 16px;" onclick="cancelBioEdit()" title="Annuler">×</button>
+                </div>
+              </div>
+            </div>
+            
+            <div id="inline-history-container" style="display: none; flex-direction: column; width: 100%; margin-top: 16px;">
+                <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 12px; gap: 8px;">
+                    <span style="font-size: 13px; font-weight: bold; color: var(--text);">Historique de vote</span>
+                    <button class="minimal-gif-btn" style="font-size: 10px; padding: 2px 6px;" onclick="openHistoryEditor()">Modifier</button>
+                </div>
+                <div id="my-profile-history-list" class="vote-history-list" style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                    <span style="font-size: 11px; color: var(--text-dim); font-style: italic; text-align: center;">Chargement...</span>
+                </div>
+            </div>
+
+            <div id="desktop-history-btn" style="margin-left: 4px; margin-top: 10px;">
+              <button class="minimal-gif-btn" style="font-size: 10px; padding: 4px 8px;" onclick="openHistoryEditor()">Historique de vote</button>
+            </div>
+          </div>
           
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div id="vote-2027-container" style="display: flex; flex-direction: column; gap: 6px; margin-top: 16px;">
+            <span id="vote-2027-title" style="display: none; font-size: 13px; font-weight: bold; color: var(--text); margin-bottom: 6px;">Mon vote 2027</span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
               <select id="vote-selector" class="minimal-gif-btn4">
-    <option value="" style="color: var(--text-dim);">Choisissez un candidat</option>
-    <option value="ABS" style="color: var(--text-dim); font-style: italic;">Abstention</option>
-    <option value="BLANC" style="color: var(--text-dim); font-style: italic;">Vote Blanc</option>
-    <option value="LO" style="color: #7a1020; font-weight: bold;">Arthaud (LO)</option>
-    <option value="PCF" style="color: #9b1010; font-weight: bold;">Roussel (PCF)</option>
-    <option value="LFI" style="color: #c0001a; font-weight: bold;">Mélenchon (LFI)</option>
-    <option value="EELV" style="color: #2ea05a; font-weight: bold;">Tondelier (EELV)</option>
-    <option value="PS" style="color: #e07080; font-weight: bold;">Glucksmann (PS)</option>
-    <option value="REN" style="color: #f0c030; font-weight: bold;">Attal (REN)</option>
-    <option value="HZ" style="color: #70c8f8; font-weight: bold;">Philippe (HZ)</option>
-    <option value="LR" style="color: #2c75ff; font-weight: bold;">Retailleau (LR)</option>
-    <option value="DF" style="color: #003870; font-weight: bold;">Dupont-Aignan (DLF)</option>
-    <option value="RN" style="color: #0d3890; font-weight: bold;">Le Pen (RN)</option>
-    <option value="RQ" style="color: #000000; font-weight: bold;">Zemmour (RQ)</option>
-</select>
+                <option value="" style="color: var(--text-dim);">Choisissez un candidat</option>
+                <option value="ABS" style="color: var(--text-dim); font-style: italic;">Abstention</option>
+                <option value="BLANC" style="color: var(--text-dim); font-style: italic;">Vote Blanc</option>
+                <option value="LO" style="color: #7a1020; font-weight: bold;">Arthaud (LO)</option>
+                <option value="PCF" style="color: #9b1010; font-weight: bold;">Roussel (PCF)</option>
+                <option value="LFI" style="color: #c0001a; font-weight: bold;">Mélenchon (LFI)</option>
+                <option value="EELV" style="color: #2ea05a; font-weight: bold;">Tondelier (EELV)</option>
+                <option value="PS" style="color: #e07080; font-weight: bold;">Glucksmann (PS)</option>
+                <option value="REN" style="color: #f0c030; font-weight: bold;">Attal (REN)</option>
+                <option value="HZ" style="color: #70c8f8; font-weight: bold;">Philippe (HZ)</option>
+                <option value="LR" style="color: #2c75ff; font-weight: bold;">Retailleau (LR)</option>
+                <option value="DF" style="color: #003870; font-weight: bold;">Dupont-Aignan (DLF)</option>
+                <option value="RN" style="color: #0d3890; font-weight: bold;">Le Pen (RN)</option>
+                <option value="RQ" style="color: #000000; font-weight: bold;">Zemmour (RQ)</option>
+              </select>
               <button onclick="handleVoteClick()" class="minimal-gif-btn2" style="font-weight: bold">Voter</button>
             </div>
-            <div id="vote-msg" style="font-size: 13px; font-weight: bold; display: none; margin-left: 4px;"></div>
+            <div id="vote-msg" style="font-size: 13px; font-weight: bold; display: none; text-align: center;"></div>
           </div>
         </div>
 
         <div class="vote-panel-right">
           <div style="margin-bottom: 8px;">
-            <span style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Votes réels</span><br>
+            <span style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Votes réels de la commu</span><br>
             <strong id="community-counter" style="font-family: 'Space Mono', monospace; color: var(--accent); font-size: 20px; line-height: 1;">0</strong>
           </div>
           
@@ -1960,6 +2219,10 @@ body.light-mode #mobile-feed-header {
         <button data-tab="simulator">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
           Simulateur
+        </button>
+        <button data-tab="profile">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+          Mon profil
         </button>
     </nav>
 </div>
@@ -2534,7 +2797,8 @@ function renderMap(tour, mode, containerId, cardId) {
   }
   
   const featsMetropole = geojsonCacheFull.features.filter(f => f.properties.code.length <= 2 || f.properties.code === '2A' || f.properties.code === '2B');
-  const projection = d3.geoConicConformal().center([2.454071, 46.279229]).scale(width * 3.5).translate([width/2, height/2]);
+  const mapScale = window.innerWidth <= 768 ? width * 3.1 : width * 3.5;
+  const projection = d3.geoConicConformal().center([2.454071, 46.279229]).scale(mapScale).translate([width/2, height/2]);
   const path = d3.geoPath().projection(projection);
   svgMerged.selectAll("path")
     .data(featsMetropole)
@@ -3218,13 +3482,18 @@ function fetchMyVote() {
     updateMyUIColors();
   });
 
-  myUserListener = db.collection("users").doc(currentUser.uid).onSnapshot(doc => {
+myUserListener = db.collection("users").doc(currentUser.uid).onSnapshot(doc => {
     if (doc.exists && doc.data().history) {
         historyVotes = Object.values(doc.data().history).filter(v => v);
     } else {
         historyVotes = [];
     }
     updateMyUIColors();
+    
+    // --- NOUVEAU : Met à jour la liste d'historique dans le profil ---
+    if (typeof window.renderMyProfileHistory === 'function') {
+        window.renderMyProfileHistory(doc.exists ? doc.data() : {});
+    }
   });
 }
 
@@ -6278,46 +6547,52 @@ window.seekAudio = function(e, id) {
     if (progressEl) progressEl.style.width = (percent * 100) + '%';
 };
 
-// ── Navigation mobile : bascule Communauté ↔ Simulateur ──
+// ── Navigation mobile à 3 onglets (Communauté, Simulateur, Profil) ──
 (function() {
   function initMobileNav() {
-    // Récupère les boutons de la bottom-nav
     const btnCom = document.querySelector('.bottom-nav button[data-tab="community"]');
     const btnSim = document.querySelector('.bottom-nav button[data-tab="simulator"]');
-    if (!btnCom || !btnSim) return;
+    const btnProf = document.querySelector('.bottom-nav button[data-tab="profile"]');
+    if (!btnCom || !btnSim || !btnProf) return;
 
-    function showCommunity() {
-      document.body.classList.remove('mobile-show-sim');
-      btnCom.classList.add('active');
-      btnSim.classList.remove('active');
-      const sidebar = document.getElementById('communitySidebar');
-      if (sidebar) sidebar.scrollTo(0, 0);
-    }
-
-    function showSimulator() {
-      document.body.classList.add('mobile-show-sim');
-      btnSim.classList.add('active');
+    function switchTab(tabName) {
+      // 1. Nettoyage des classes
+      document.body.classList.remove('mobile-show-sim', 'mobile-show-profile');
       btnCom.classList.remove('active');
-      const mainContent = document.getElementById('mainContent');
-      if (mainContent) mainContent.scrollTo(0, 0);
+      btnSim.classList.remove('active');
+      btnProf.classList.remove('active');
+
+      // 2. Activation du bon onglet
+      if (tabName === 'simulator') {
+        document.body.classList.add('mobile-show-sim');
+        btnSim.classList.add('active');
+        document.getElementById('mainContent')?.scrollTo(0, 0);
+      } 
+      else if (tabName === 'profile') {
+        document.body.classList.add('mobile-show-profile');
+        btnProf.classList.add('active');
+        document.getElementById('mainContent')?.scrollTo(0, 0);
+      } 
+      else { // community
+        btnCom.classList.add('active');
+        document.getElementById('chat-feed')?.scrollTo(0, 0);
+      }
     }
 
-    // On attache les événements de clic DANS TOUS LES CAS (même sur PC)
-    btnCom.addEventListener('click', showCommunity);
-    btnSim.addEventListener('click', showSimulator);
+    // On attache les clics
+    btnCom.addEventListener('click', () => switchTab('community'));
+    btnSim.addEventListener('click', () => switchTab('simulator'));
+    btnProf.addEventListener('click', () => switchTab('profile'));
 
-    // Au chargement : ouvre Communauté par défaut si on est sur mobile
-    if (window.innerWidth <= 768) {
-      showCommunity();
-    }
+    // Par défaut sur mobile : Communauté
+    if (window.innerWidth <= 768) switchTab('community');
   }
 
   document.addEventListener('DOMContentLoaded', initMobileNav);
   
-  // Sécurité : si on repasse sur un grand écran, on annule la vue mobile
   window.addEventListener('resize', () => {
     if (window.innerWidth > 768) {
-      document.body.classList.remove('mobile-show-sim');
+      document.body.classList.remove('mobile-show-sim', 'mobile-show-profile');
     }
   });
 })();
@@ -6445,6 +6720,55 @@ window.closeAllMobileMenus = function() {
 
     // AJOUTEZ ICI LA FERMETURE DES AUTRES MENUS (Login, affichage de profil...)
     // Exemple : document.getElementById('login-modal')?.classList.remove('show');
+};
+
+// Affiche l'historique des votes directement dans l'onglet Mon Profil
+window.renderMyProfileHistory = function(userData) {
+    const listContainer = document.getElementById('my-profile-history-list');
+    if (!listContainer) return;
+
+    if (!userData.dob) {
+        listContainer.innerHTML = `<span style="font-size: 11px; color: var(--text-dim); font-style: italic; text-align: center;">Renseignez votre date de naissance pour voir votre historique.</span>`;
+        return;
+    }
+
+    const dateMajorite = new Date(userData.dob);
+    dateMajorite.setFullYear(dateMajorite.getFullYear() + 18);
+    const years = ['2022', '2017', '2012', '2007', '2002', '1995'];
+    
+    let html = '';
+    let hasEligibleElections = false;
+
+    years.forEach(year => {
+        const elecDate = new Date(`${year}-04-20`);
+        if (elecDate >= dateMajorite) {
+            hasEligibleElections = true;
+            const histKey = `pres_${year}_T1`; // On affiche le 1er tour par défaut
+            const rawVote = userData.history && userData.history[histKey] ? userData.history[histKey] : '';
+            
+            let displayVote = "Non renseigné";
+            let voteColor = 'var(--text-dim)';
+            
+            if (rawVote === 'ABS') displayVote = 'Abstention';
+            else if (rawVote === 'BLANC') displayVote = 'Vote Blanc';
+            else if (rawVote && HISTORICAL_DATA[year] && HISTORICAL_DATA[year]['T1'].candidats[rawVote]) {
+                const candName = HISTORICAL_DATA[year]['T1'].candidats[rawVote];
+                displayVote = `${candName} (${getPartyShortName(rawVote, year)})`;
+                voteColor = COULEURS[rawVote] || 'var(--text)';
+            }
+
+            html += `<div class="inline-vote-item">
+                        <strong style="color: var(--text);">${year}</strong> 
+                        <span style="color: ${voteColor}; font-weight: bold; text-align: right;">${displayVote}</span>
+                     </div>`;
+        }
+    });
+
+    if (!hasEligibleElections) {
+        html = `<span style="font-size: 11px; color: var(--text-dim); font-style: italic; text-align: center;">Pas en âge de voter lors des élections passées.</span>`;
+    }
+    
+    listContainer.innerHTML = html;
 };
 
 </script>
