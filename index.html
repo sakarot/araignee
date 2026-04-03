@@ -57,9 +57,9 @@
 }
 
 html.light-mode, body.light-mode {
-    --bg: #E5ECF4; 
-    --surface: #F1F5F9; 
-    --surface2: #F1F5F9;
+    --bg: #d3dfec; 
+    --surface: #E5ECF4; 
+    --surface2: #E5ECF4;
     --border: rgba(119, 141, 169, 0.25); 
     --text: #0D1B2A; 
     --text-dim: #415A77; 
@@ -154,7 +154,7 @@ body.light-mode .post-pseudo.p-RQ { color: var(--RQ); }
 body.light-mode input,
 body.light-mode textarea,
 body.light-mode .gif-search-input {
-    background: var(--surface) !important;
+    background: var(--bg) !important; /* Force l'utilisation du gris/bleu clair du fond */
     color: var(--text) !important;
     border: 1px solid var(--border) !important;
 }
@@ -165,10 +165,9 @@ body.light-mode .bottom-nav {
 
 body.light-mode .map-tooltip, 
 body.light-mode .poll-tooltip {
-    background: rgba(255, 255, 255, 0.98) !important;
+    background: var(--surface) !important;
 }
 
-body.light-mode .post-card,
 body.light-mode .chart-card,
 body.light-mode .controls-panel,
 body.light-mode .vote-panel-container,
@@ -177,6 +176,16 @@ body.light-mode .community-footer,
 body.light-mode .t2-card,
 body.light-mode .data-table-card {
     background: var(--surface);
+}
+
+body.light-mode .post-card, {
+    background: var(--bg) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Optionnel : ombre légère pour le relief */
+}
+body.light-mode .vote-panel-container,
+body.light-mode .chart-card {
+    background: var(--surface) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Optionnel : ombre légère pour le relief */
 }
 
 body.light-mode .social-links.small a svg,
@@ -224,36 +233,11 @@ body.light-mode .sticky-chat-footer {
     box-shadow: 0 -4px 30px rgba(119, 141, 169, 0.15) !important;
 }
 
- .bottom-nav {
-  display: none;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: rgba(13, 27, 42, 0.97);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border);
-  z-index: 1000;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  height: calc(56px + env(safe-area-inset-bottom, 0px));
-}
-.bottom-nav button {
-  flex: 1; padding: 10px 8px; background: none; border: none;
-  color: var(--text-dim);
-  font-family: 'Space Mono', monospace; font-size: 10px;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  transition: color 0.2s; cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.bottom-nav button.active { color: var(--text); }
-.bottom-nav button.active svg { filter: drop-shadow(0 0 6px rgba(119,141,169,0.8)); }
-.bottom-nav button svg { fill: currentColor; width: 22px; height: 22px; transition: filter 0.2s; }
-
 .comment-thread-nested {
     margin-top: 8px;
     margin-left: 12px;
     padding-left: 10px;
-    border-left: 1px solid rgba(255,255,255,0.1);
+    border-left: 1px solid  color-mix(in srgb, var(--text) 6%, transparent);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -272,10 +256,10 @@ body.light-mode .sticky-chat-footer {
 }
 
 .nested-card {
-    background: rgba(255,255,255,0.01);
+    background:  color-mix(in srgb, var(--text) 1%, transparent);
     border-radius: 6px;
     padding: 8px;
-    border: 1px solid rgba(255,255,255,0.02);
+    border: 1px solid  color-mix(in srgb, var(--text) 2%, transparent);
 }
 
 .post-actions {
@@ -285,7 +269,7 @@ body.light-mode .sticky-chat-footer {
 .expanded-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background:  color-mix(in srgb, var(--text) 8%, transparent);
     backdrop-filter: blur(5px);
     z-index: 9998;
     display: none;
@@ -294,7 +278,7 @@ body.light-mode .sticky-chat-footer {
 
 .focused-thread {
     font-size: 14px !important; /* Réinitialise la cascade de réduction ! */
-    background: rgba(255, 255, 255, 0.05) !important;
+    background:  color-mix(in srgb, var(--text) 6%, transparent) !important;
     border-left: 2px solid var(--accent) !important;
     padding: 10px !important;
     margin-top: 8px;
@@ -382,7 +366,7 @@ body.light-mode .sticky-chat-footer {
   .selector-btn:last-child { border-right: none; }
   .selector-btn.active#btnAttal { background: var(--REN); color: var(--bg); }
   .selector-btn.active#btnPhilippe { background: var(--HZ); color: var(--bg); }
-  .selector-btn:hover:not(.active) { background: rgba(255,255,255,0.03); color: var(--text);}
+  .selector-btn:hover:not(.active) { background:  color-mix(in srgb, var(--bg) 6%, transparent); color: var(--text);}
   .reset-btn { font-family: 'Space Mono', monospace; font-size: 10px;
   padding: 5px 12px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: 4px; cursor: pointer; letter-spacing: 0.05em; transition: all 0.2s; }
   .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -398,7 +382,7 @@ body.light-mode .sticky-chat-footer {
   .dual-slider-fill-lfi { position: absolute; top: 9px; left: 0; height: 6px; background: var(--LFI); border-radius: 3px 0 0 3px; pointer-events: none;}
   .dual-slider-fill-rn { position: absolute; top: 9px; right: 0; height: 6px; background: var(--RN); border-radius: 0 3px 3px 0; pointer-events: none;}
   input[type=range].dual { position: absolute; top: 0; left: 0; width: 100%; -webkit-appearance: none; background: transparent; pointer-events: none; z-index: 5; height: 24px; margin: 0;}
-  input[type=range].dual::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); cursor: pointer; box-shadow: 0 0 5px rgba(0,0,0,0.8); }
+  input[type=range].dual::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); cursor: pointer; box-shadow: 0 0 5px  color-mix(in srgb, var(--text) 8%, transparent); }
   input[type=range].dual:active::-webkit-slider-thumb { transform: scale(1.2); }
 
 /* Menu Utilisateur (Dropdown) */
@@ -407,7 +391,7 @@ body.light-mode .sticky-chat-footer {
   .user-icon-btn:hover { background: var(--accent); border-color: var(--accent); }
   .user-icon-btn:hover svg { fill: bg; }
   
-  .user-dropdown { display: none; position: absolute; right: 0; top: 100%; margin-top: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; width: 260px; z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,0.8); }
+  .user-dropdown { display: none; position: absolute; right: 0; top: 100%; margin-top: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; width: 260px; z-index: 999; box-shadow: 0 8px 32px color-mix(in srgb, var(--text) 8%, transparent); }
   .user-dropdown.show { display: flex; flex-direction: column; gap: 12px; }
 
 /* Crayon de modification minimaliste (Gris) */
@@ -454,7 +438,7 @@ body.light-mode .sticky-chat-footer {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--text) 8%, transparent);
   z-index: 9999;
   width: clamp(200px, 60vw, 280px);
   min-width: 0;
@@ -734,8 +718,18 @@ body.light-mode .sticky-chat-footer {
   .hashtag-bar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
 
   .chat-input-area { padding: 12px 16px 16px 16px; background: transparent; display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); }
-  .chat-input-area textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px; font-family: 'DM Sans', sans-serif; resize: none; height: 60px; font-size: 13px; }
-  
+  .chat-input-area textarea { 
+    width: 100%; 
+    background: var(--bg); /* Utilise le fond bleu nuit profond */
+    border: 1px solid var(--border); 
+    color: var(--text); 
+    border-radius: 8px; 
+    padding: 10px; 
+    font-family: 'DM Sans', sans-serif; 
+    resize: none; 
+    height: 60px; 
+    font-size: 13px; 
+}
   .hashtag-pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: bold; font-family: 'Space Mono', monospace; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; }
   .hashtag-count { background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 10px; font-size: 9px; }
   
@@ -789,13 +783,13 @@ body.light-mode .sticky-chat-footer {
   .palette-color { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; transition: transform 0.1s; }
   .palette-color:hover { transform: scale(1.2); }
   .poll-container { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; margin-bottom: 4px; }
-  .poll-option { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 12px; cursor: pointer; position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-  .poll-option:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+  .poll-option { background: color-mix(in srgb, var(--bg) 3%, transparent); border: 1px solid color-mix(in srgb, var(--text) 6%, transparent); border-radius: 6px; padding: 8px 12px; cursor: pointer; position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+  .poll-option:hover { background: color-mix(in srgb, var(--text) 8%, transparent); border-color: rgba(255,255,255,0.2); }
   .poll-bar-fill { position: absolute; top: 0; left: 0; bottom: 0; opacity: 0.35; transition: width 0.6s cubic-bezier(0.23,1,0.32,1); z-index: 0; }
   .poll-option-content { position: relative; z-index: 1; font-size: 12px; font-weight: bold; width: 100%; display: flex; justify-content: space-between; pointer-events: none; }
 
   /* Tooltip (Stats au survol) */
-  .poll-tooltip { position: fixed; background: rgba(20, 20, 26, 0.98); backdrop-filter: blur(8px); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 11px; pointer-events: none; opacity: 0; transition: opacity 0.2s; box-shadow: 0 8px 30px rgba(0,0,0,0.8); z-index: 9999; min-width: 200px; color: var(--text); }
+  .poll-tooltip { position: fixed; background: var(--bg) ; backdrop-filter: blur(8px); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 11px; pointer-events: none; opacity: 0; transition: opacity 0.2s; box-shadow: 0 8px 30px rgba(0,0,0,0.8); z-index: 9999; min-width: 200px; color: var(--text); }
   .poll-tooltip-title { font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; font-family: 'DM Serif Display', serif; font-size: 14px;}
 
 
@@ -839,13 +833,6 @@ body.light-mode .sticky-chat-footer {
     .chat-feed {
         padding: 16px 12px 120px 12px !important;
         gap: 14px;
-    }
-
-    .post-card {
-        padding: 14px;
-        border-radius: 14px;
-        background: #14161C;
-        border: 1px solid rgba(255,255,255,0.04);
     }
 
     .post-body {
@@ -1044,7 +1031,7 @@ body.light-mode .sticky-chat-footer {
 }
 .profile-bio { font-style: italic; color: var(--text-dim); margin-bottom: 15px; }
 .vote-history-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-.vote-item { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; font-size: 0.9em; }
+.vote-item { background: color-mix(in srgb, var(--text-dim) 5%, transparent); padding: 8px; border-radius: 6px; font-size: 0.9em; }
 
 /* --- MASQUER LA SCROLLBAR UNIQUEMENT POUR LE FOND DE LA MODALE --- */
 #history-modal {
@@ -2173,8 +2160,12 @@ function initCharts() {
     type: 'bar',
     data: { labels: currentOrder.map(b=>CANDIDATS[b]), datasets: [{ data: currentOrder.map(b=>dummyScores[b]), backgroundColor: currentOrder.map(b=>COULEURS[b]+'dd'), borderRadius: 4 }] },
     options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } },
-      scales: { x: { ticks: { color: '#7a7890', font: { size: 10 } }, grid: { display: false } },
-                y: { ticks: { color: '#7a7890', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+      scales: { x: { ticks: { color: 'color-mix(in srgb, var(--text) 50%, transparent)', font: { size: 10 } },grid: { 
+        display: false,    // Pas de traits verticaux
+        drawOnChartArea: false,
+        border: { display: false } // SUPPRIME LA LIGNE DE L'AXE X
+    }, },
+                y: { ticks: { color: 'color-mix(in srgb, var(--text) 50%, transparent)', callback: v => v + '%' }, grid: { border: { display: false }, drawTicks: false, color: 'color-mix(in srgb, var(--text) 50%, transparent)' } } } }
   });
 
   const centerColor = currentCenterCandidate === 'Attal' ? COULEURS.REN : COULEURS.HZ;
@@ -3209,7 +3200,7 @@ db.collection('stats').doc('hashtags').onSnapshot(doc => {
       const color = COULEURS[parti] || 'var(--text)';
       const isActive = window.currentHashtagFilter === parti ? 'active-filter' : '';
       bar.innerHTML += `
-        <div class="hashtag-pill ${isActive}" style="color: ${color}; border-color: ${color}40; cursor: pointer; transition: background 0.2s;" onclick="setHashtagFilter('${parti}')" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+        <div class="hashtag-pill ${isActive}" style="color: ${color}; border-color: ${color}40; cursor: pointer; transition: background 0.2s;" onclick="setHashtagFilter('${parti}')" onmouseover="this.style.background=' color-mix(in srgb, var(--text-dim) 6%, transparent)'" onmouseout="this.style.background=' color-mix(in srgb, var(--text-dim) 6%, transparent)'">
           #${parti} <span class="hashtag-count" style="color: var(--text);">${count}</span>
         </div>
       `;
@@ -4032,7 +4023,9 @@ function updateChartsTheme(isLight) {
     if(typeof chartBar !== 'undefined' && chartBar) {
         chartBar.options.scales.x.ticks.color = isLight ? '#64748B' : '#7a7890';
         chartBar.options.scales.y.ticks.color = isLight ? '#64748B' : '#7a7890';
-        chartBar.options.scales.y.grid.color = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)';
+        chartBar.options.scales.y.grid.color = isLight ? 
+            'rgba(0, 0, 0, 0.05)' :      // Gris léger en mode clair
+            'rgba(255, 255, 255, 0.05)';
         chartBar.update('none');
         
         chartDonut.options.plugins.legend.labels.color = isLight ? '#64748B' : '#7a7890';
@@ -4312,102 +4305,112 @@ window.openUserProfile = async function(pseudoToFind) {
     try {
         if (!pseudoToFind) return;
 
-        // 1. Trouver l'UID
         const lowerName = pseudoToFind.trim().toLowerCase();
         const usernameDoc = await db.collection("usernames").doc(lowerName).get();
         
         if (!usernameDoc.exists) return alert("Cet utilisateur est introuvable.");
         const targetUid = usernameDoc.data().uid;
 
-        // 2. Récupérer TOUTES les données (Profil + Vote actuel)
         const userDoc = await db.collection("users").doc(targetUid).get();
         const voteDoc = await db.collection("votes").doc(targetUid).get();
 
         const userData = userDoc.exists ? userDoc.data() : {};
         const currentVote = voteDoc.exists ? voteDoc.data().parti : 'Non renseigné';
-        
         const age = userData.dob ? calculateAge(userData.dob) : 'Inconnu';
         const bio = userData.bio || "Cet utilisateur n'a pas encore de bio.";
         
-        let votesHtml = '';
-
-        // --- A. Intention de Vote 2027 (Toujours affichée) ---
-        let displayVote27 = currentVote;
-        let color27 = COULEURS[currentVote] || 'var(--text)';
-        if (currentVote === 'ABS') { displayVote27 = 'Abstention'; color27 = 'var(--text-dim)'; }
-        else if (currentVote === 'BLANC') { displayVote27 = 'Vote Blanc'; color27 = 'var(--text-dim)'; }
-        else if (currentVote === 'Non renseigné') { color27 = 'var(--text-dim)'; }
-        else if (CANDIDATS[currentVote]) { displayVote27 = `${CANDIDATS[currentVote]} (${currentVote})`; }
-
-        votesHtml += `<div class="vote-item" style="border-left: 3px solid var(--accent); background: rgba(255,255,255,0.05); margin-bottom: 8px;"><strong>Présidentielle 2027 :</strong> <span style="color: ${color27}; font-weight: bold;">${displayVote27}</span></div>`;
-
-        // --- B. Historique des élections passées ---
-        if (userData.dob) {
-            const dateMajorite = new Date(userData.dob);
-            dateMajorite.setFullYear(dateMajorite.getFullYear() + 18);
-
-            const years = ['2022', '2017', '2012', '2007', '2002', '1995'];
-            let hasHistory = false;
-
-            years.forEach(year => {
-                const elecDate = new Date(`${year}-04-20`); // Approximation de la date du 1er tour
-                if (elecDate >= dateMajorite) {
-                    hasHistory = true;
-                    ['T1', 'T2'].forEach(tour => {
-                        const histKey = `pres_${year}_${tour}`;
-                        const rawVote = userData.history && userData.history[histKey] ? userData.history[histKey] : '';
-                        
-                        let displayVote = rawVote;
-                        let color = COULEURS[rawVote] || 'var(--text)';
-                        
-                        if (rawVote === 'ABS') { displayVote = 'Abstention'; color = 'var(--text-dim)'; }
-                        else if (rawVote === 'BLANC') { displayVote = 'Vote Blanc / Nul'; color = 'var(--text-dim)'; }
-                        else if (!rawVote || rawVote === 'Non renseigné') { displayVote = 'Non renseigné'; color = 'var(--text-dim)'; }
-                        else if (HISTORICAL_DATA[year][tour].candidats[rawVote]) {
-                            const candName = HISTORICAL_DATA[year][tour].candidats[rawVote];
-                            const partyName = getPartyName(rawVote, year);
-                            displayVote = `${candName} (${partyName})`;
-                        }
-
-                        votesHtml += `<div class="vote-item"><strong>Présidentielle ${year} (${tour === 'T1' ? '1er' : '2nd'} Tour) :</strong> <span style="color: ${color}; font-weight: bold;">${displayVote}</span></div>`;
-                    });
-                }
-            });
-            
-            if (!hasHistory) {
-                votesHtml += `<div style="font-size:0.9em; color:var(--text-dim); margin-top:8px;">Pas encore en âge de voter lors des dernières élections.</div>`;
-            }
-        } else {
-            votesHtml += `<div style="font-size:0.9em; color:var(--text-dim); margin-top:8px;">Date de naissance non renseignée, historique indisponible.</div>`;
-        }
-
-        // 3. Afficher la modale
         const oldModal = document.getElementById('profile-modal');
         if (oldModal) oldModal.remove();
 
+        const generateVotesHtml = (tourAffiche) => {
+            let html = '';
+            
+            // --- Intention 2027 ---
+            let display27 = currentVote;
+            let color27 = COULEURS[currentVote] || 'var(--text)';
+            if (currentVote === 'ABS') display27 = 'Abstention';
+            else if (currentVote === 'BLANC') display27 = 'Vote Blanc';
+            else if (CANDIDATS[currentVote]) display27 = `${CANDIDATS[currentVote]} (${getPartyShortName(currentVote, '2027')})`;
+
+            html += `<div class="vote-item" style="border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--text-dim) 6%, transparent); margin-bottom: 8px;">
+                        <strong style="color: var(--text);">2027 :</strong> <span style="color: ${color27}; font-weight: bold;">${display27}</span>
+                     </div>`;
+
+            // --- Le Bouton Switch ---
+            html += `
+            <div style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
+                <button id="btn-switch-tour" class="minimal-gif-btn4" data-tour="${tourAffiche}" style="font-size:10px; padding: 4px 8px;">
+                    ${tourAffiche === 'T1' ? '2<sup>nd</sup> Tour' : '1<sup>er</sup> Tour'}
+                </button>
+            </div>`;
+
+            // --- Titre Historique ---
+            html += `<h3 style="font-size:1em; margin: 0 0 10px 0; color: var(--text-dim); border-bottom: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); padding-bottom: 4px;">Historique des votes</h3>`;
+
+            // --- Historique des années passées ---
+            if (userData.dob) {
+                const dateMajorite = new Date(userData.dob);
+                dateMajorite.setFullYear(dateMajorite.getFullYear() + 18);
+                const years = ['2022', '2017', '2012', '2007', '2002', '1995'];
+                
+                years.forEach(year => {
+                    const elecDate = new Date(`${year}-04-20`);
+                    if (elecDate >= dateMajorite) {
+                        const histKey = `pres_${year}_${tourAffiche}`;
+                        const rawVote = userData.history && userData.history[histKey] ? userData.history[histKey] : '';
+                        
+                        let displayVote = "Non renseigné";
+                        let voteColor = 'var(--text-dim)';
+                        
+                        if (rawVote === 'ABS') displayVote = 'Abstention';
+                        else if (rawVote === 'BLANC') displayVote = 'Blanc / Nul';
+                        else if (rawVote && HISTORICAL_DATA[year][tourAffiche].candidats[rawVote]) {
+                            const candName = HISTORICAL_DATA[year][tourAffiche].candidats[rawVote];
+                            displayVote = `${candName} (${getPartyShortName(rawVote, year)})`;
+                            voteColor = COULEURS[rawVote] || 'var(--text)';
+                        }
+
+                        html += `<div class="vote-item">
+                                    <strong style="color: var(--text);">${year} :</strong> <span style="color: ${voteColor}; font-weight: bold;">${displayVote}</span>
+                                 </div>`;
+                    }
+                });
+            }
+            return html;
+        };
+
         const modalHtml = `
-        <div id="profile-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;" onclick="this.remove()">
+        <div id="profile-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background: color-mix(in srgb, var(--bg) 15%, transparent); backdrop-filter: blur(4px); z-index:9999; display:flex; align-items:center; justify-content:center;" onclick="this.remove()">
             <div class="profile-modal-content" onclick="event.stopPropagation()">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h2 style="margin:0;">@${pseudoToFind} <span style="font-size:0.6em; color:var(--text-dim);">(${age}${age !== 'Inconnu' ? ' ans' : ''})</span></h2>
+                    <h2 style="margin:0;">@${pseudoToFind} <span style="font-size:0.6em; color:var(--text-dim);">(${age} ans)</span></h2>
                     <button onclick="document.getElementById('profile-modal').remove()" style="background:none; border:none; color:var(--text-dim); font-size:1.5em; cursor:pointer;">&times;</button>
                 </div>
                 <div class="profile-bio">"${bio}"</div>
                 <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
-                <h3 style="font-size:1em; margin-bottom:10px;">Votes</h3>
-                <div class="vote-history-list">
-                    ${votesHtml}
+                
+                <div id="modal-votes-list" class="vote-history-list">
+                    ${generateVotesHtml('T1')}
                 </div>
             </div>
         </div>`;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+        const listContainer = document.getElementById('modal-votes-list');
+        listContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('#btn-switch-tour');
+            if (btn) {
+                const currentTour = btn.getAttribute('data-tour');
+                const nextTour = currentTour === 'T1' ? 'T2' : 'T1';
+                listContainer.innerHTML = generateVotesHtml(nextTour);
+            }
+        });
+
     } catch (error) {
-        console.error("Erreur d'ouverture :", error);
+        console.error("Erreur profil :", error);
     }
 };
-
 window.openHistoryEditor = async function() {
     if (!currentUser) return;
     
@@ -4479,7 +4482,7 @@ window.openHistoryEditor = async function() {
 
     // 5. Construire la modale avec le select à côté du titre
     const modalHtml = `
-    <div id="history-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:flex-start; justify-content:center; overflow-y:auto; padding: 40px 0;" onclick="this.remove()">
+    <div id="history-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background: color-mix(in srgb, var(--bg) 10%, transparent); z-index:9999; display:flex; align-items:flex-start; justify-content:center; overflow-y:auto; padding: 40px 0;" onclick="this.remove()">
         <div class="profile-modal-content" style="margin: auto; overflow: visible; width: 90%; max-width: 380px;" onclick="event.stopPropagation()">
             
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:10px;">
@@ -5369,6 +5372,27 @@ window.captureWebcam = function() {
         
         closeWebcam();
     }, 'image/jpeg', 0.9); // Qualité de 90%
+};
+
+// --- GESTION DU SURVOL DES SONDAGES ---
+let pollHoverTimeout = null;
+
+window.startPollHover = function(event, entityId, optionId) {
+  // On annule un éventuel timeout de fermeture
+  clearTimeout(pollHoverTimeout);
+  
+  const rect = event.target.getBoundingClientRect();
+  
+  // Petit délai de 150ms pour éviter que l'infobulle ne clignote en bougeant vite
+  pollHoverTimeout = setTimeout(() => {
+    showPollTooltip(entityId, optionId, rect);
+  }, 150);
+};
+
+window.cancelPollHover = function() {
+  clearTimeout(pollHoverTimeout);
+  const tt = document.getElementById('globalPollTooltip');
+  if (tt) tt.style.opacity = '0';
 };
 
 </script>
