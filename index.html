@@ -819,6 +819,12 @@ body.light-mode .sticky-chat-footer {
 
 @media (max-width: 768px) {
 
+	#mobile-top-title {
+    font-family: 'Choplin', sans-serif !important; /* Applique la police Choplin */
+    font-size: 16px; /* Ajustez la taille si Choplin est trop petite */
+    font-weight: bold;
+}
+
 /* Cache la barre PC et son menu déroulant sur petit écran (Mobile) */
     #desktop-feed-header, #desktop-feed-header .custom-select-wrapper {
         display: none !important;
@@ -1415,6 +1421,21 @@ textarea#post-text {
     #theme-toggle {
         display: none !important;
     }
+	
+	#chat-feed {
+        padding-top: 70px !important; /* Laisse la place pour la barre du haut */
+    }
+
+    /* 2. Onglet Simulateur */
+    body.mobile-show-sim #mainContent,
+    body.mobile-show-sim .container {
+        padding-top: 70px !important; 
+    }
+
+    /* 3. Onglet Mon Profil */
+    body.mobile-show-profile #mobile-profile-section {
+        padding-top: 70px !important;
+    }
     
     /* Gérer la nouvelle barre flottante Fil d'actualité */
 #mobile-feed-header {
@@ -1433,13 +1454,7 @@ textarea#post-text {
         transform: translateY(-100%);
     }
 
-    /* On décale le contenu des onglets pour laisser la place à la barre */
-    body.mobile-show-sim .container {
-        padding-top: 65px !important;
-    }
-    body.mobile-show-profile #mobile-profile-section {
-        padding-top: 65px !important;
-    }
+
     
 body.light-mode #mobile-feed-header {
         background: var(--bg) !important;
@@ -1552,22 +1567,18 @@ body.light-mode #mobile-feed-header {
     body.mobile-show-sim #mobile-profile-section {
         display: none !important; /* On cache le header et le profil dans le simulateur */
     }
-    body.mobile-show-sim .container {
-        padding: 16px 16px 90px 16px !important; /* De la place en bas pour la navigation */
-    }
+ 
 
     /* ONGLET 3 : MON PROFIL */
     body.mobile-show-profile #mainContent {
         display: block !important;
-        padding: 0 !important;
+        
     }
     /* On cache TOUT le simulateur et l'en-tête... */
     body.mobile-show-profile .container > * {
         display: none !important; 
     }
-    body.mobile-show-profile .container {
-        padding: 16px 16px 90px 16px !important;
-    }
+
     /* ... ET on affiche UNIQUEMENT le bloc profil ! */
     body.mobile-show-profile .container > #mobile-profile-section {
         display: flex !important;
@@ -1596,7 +1607,7 @@ body.light-mode #mobile-feed-header {
     body.mobile-show-profile .vote-panel-right {
         border-left: none !important;
         border-top: 1px solid var(--border);
-        padding-top: 16px;
+      
         text-align: center;
     }
     body.mobile-show-profile #community-leaderboard {
@@ -1759,16 +1770,28 @@ body.light-mode #mobile-feed-header {
         box-sizing: border-box;
     }
 
-    /* Votes réels tout en bas */
-    body.mobile-show-profile .vote-panel-right {
-        width: 100%;
-        text-align: center;
-        border-left: none;
-        border-top: 1px dashed rgba(255,255,255,0.1);
-        padding-top: 20px;
-        margin-top: 0;
-    }
+}
 
+/* ── CORRECTION DÉFINITIVE DU DÉCALAGE SOUS LA BARRE FIXE ── */
+@media (max-width: 768px) {
+    /* 1. Simulateur */
+    body.mobile-show-sim .container {
+        padding-top: 70px !important;
+    }
+    
+    /* 2. Profil */
+    body.mobile-show-profile .container {
+        padding-top: 70px !important;
+    }
+    /* On empêche le profil d'annuler le padding de son conteneur parent */
+    body.mobile-show-profile .container > #mobile-profile-section {
+        padding-top: 0 !important; 
+    }
+    
+    /* 3. Fil d'actualité */
+    .chat-feed {
+        padding-top: 70px !important;
+    }
 }
 
 </style>
@@ -2295,7 +2318,7 @@ body.light-mode #mobile-feed-header {
         </button>
         <button data-tab="profile">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
-          Mon profil
+          Profil
         </button>
     </nav>
 </div>
@@ -6048,62 +6071,115 @@ function compressVideoToBase64(file, errMsg, callback) {
     video.onerror = () => finishCompression(null, "Format vidéo non lisible.");
 }
 
-window.selectedMediaDataUrls = []; // Stocke les images
+// Variable globale pour stocker les médias
+window.selectedMediaDataUrls = window.selectedMediaDataUrls || [];
 
 window.handleMediaUpload = function(input) {
-    const errMsg = document.getElementById('post-error-msg');
+    const errMsg = document.getElementById('post-error-msg-mobile') || document.getElementById('post-error-msg');
     if (errMsg) errMsg.style.display = 'none';
 
     if (input.files && input.files.length > 0) {
-        const files = Array.from(input.files).slice(0, 4);
-        window.selectedMediaDataUrls = [];
-        
+        // On supprime un éventuel GIF si l'utilisateur choisit des images
         if(typeof removeSelectedGif === 'function') removeSelectedGif('post');
         
-        const previewWrap = document.getElementById('post-gif-preview-wrap');
-        previewWrap.innerHTML = '';
-        
-        let loadedCount = 0;
-        const checkDone = () => {
-            loadedCount++;
-            if(loadedCount === files.length) {
-                previewWrap.innerHTML += `<button class="gif-preview-close" onclick="removeSelectedMedia()">✖</button>`;
-                previewWrap.style.display = 'flex';
-            }
-        };
+        // Calcule combien d'images on peut encore ajouter
+        const currentCount = window.selectedMediaDataUrls.length;
+        const remainingSlots = 4 - currentCount;
 
-        files.forEach((file) => {
+        if (remainingSlots <= 0) {
+            if (errMsg) {
+                errMsg.innerText = "Vous ne pouvez pas ajouter plus de 4 fichiers.";
+                errMsg.style.color = '#ff4d4d';
+                errMsg.style.display = 'block';
+            }
+            input.value = ''; // Reset de l'input
+            return;
+        }
+
+        // On prend uniquement le nombre de fichiers autorisés restants
+        const filesToAdd = Array.from(input.files).slice(0, remainingSlots);
+        let loadedCount = 0;
+
+        filesToAdd.forEach((file) => {
             const isVideo = file.type.startsWith('video/');
             if (isVideo) {
-                // Compression Vidéo
                 compressVideoToBase64(file, errMsg, (base64, err) => {
-                    if (base64) {
-                        window.selectedMediaDataUrls.push({ url: base64, isVideo: true });
-                        previewWrap.innerHTML += `<video src="${base64}" style="height: 60px; width: 60px; object-fit:cover; border-radius:6px; margin-right:4px;" autoplay muted loop playsinline></video>`;
-                    }
-                    checkDone();
+                    if (base64) window.selectedMediaDataUrls.push({ url: base64, isVideo: true });
+                    loadedCount++;
+                    if(loadedCount === filesToAdd.length) renderMediaPreviews();
                 });
             } else {
-                // Compression Image (Empêche le crash Firebase)
                 compressImageToBase64(file, (base64) => {
-                    window.selectedMediaDataUrls.push({ url: base64, isVideo: false });
-                    previewWrap.innerHTML += `<img src="${base64}" style="height: 60px; width: 60px; object-fit:cover; border-radius:6px; margin-right:4px;">`;
-                    checkDone();
+                    if (base64) window.selectedMediaDataUrls.push({ url: base64, isVideo: false });
+                    loadedCount++;
+                    if(loadedCount === filesToAdd.length) renderMediaPreviews();
                 });
             }
         });
+        
+        // On vide l'input pour pouvoir recliquer sur le même fichier si besoin plus tard
+        input.value = ''; 
     }
 };
 
+// --- NOUVELLE FONCTION : Affiche les images avec leur propre bouton "X" ---
+window.renderMediaPreviews = function() {
+    const previewWrapMobile = document.getElementById('post-gif-preview-wrap-mobile');
+    const previewWrapPC = document.getElementById('post-gif-preview-wrap');
+
+    // On génère le code HTML pour chaque image avec une croix individuelle
+    const html = window.selectedMediaDataUrls.map((media, index) => {
+        let mediaTag = media.isVideo 
+            ? `<video src="${media.url}" style="height: 60px; width: 60px; object-fit:cover; border-radius:6px;" autoplay muted loop playsinline></video>`
+            : `<img src="${media.url}" style="height: 60px; width: 60px; object-fit:cover; border-radius:6px;">`;
+
+        return `
+        <div style="position: relative; display: inline-block; margin-right: 8px; margin-bottom: 8px;">
+            ${mediaTag}
+            <button class="gif-preview-close" style="position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; font-size: 10px; line-height: 1; padding: 0; display: flex; justify-content: center; align-items: center;" onclick="removeIndividualMedia(${index})">✖</button>
+        </div>
+        `;
+    }).join('');
+
+    // Mise à jour de l'affichage sur PC et Mobile
+    if (previewWrapMobile) {
+        previewWrapMobile.innerHTML = html;
+        previewWrapMobile.style.display = window.selectedMediaDataUrls.length > 0 ? 'flex' : 'none';
+        previewWrapMobile.style.flexWrap = 'wrap'; // Permet le retour à la ligne
+    }
+    if (previewWrapPC) {
+        previewWrapPC.innerHTML = html;
+        previewWrapPC.style.display = window.selectedMediaDataUrls.length > 0 ? 'flex' : 'none';
+        previewWrapPC.style.flexWrap = 'wrap';
+    }
+};
+
+// --- NOUVELLE FONCTION : Supprime une seule image ---
+window.removeIndividualMedia = function(index) {
+    window.selectedMediaDataUrls.splice(index, 1); // Retire l'image du tableau
+    renderMediaPreviews(); // Met à jour l'affichage
+    
+    // Si la liste est totalement vide, on fait un nettoyage complet
+    if (window.selectedMediaDataUrls.length === 0) {
+        removeSelectedMedia();
+    }
+};
+
+// --- ANCIENNE FONCTION MODIFIÉE : Supprime tout (utilisée après l'envoi du post) ---
 window.removeSelectedMedia = function() {
     window.selectedMediaDataUrls = [];
-    const input = document.getElementById('media-upload-input');
-    if(input) input.value = '';
-    const previewWrap = document.getElementById('post-gif-preview-wrap');
-    if (previewWrap) {
-        previewWrap.style.display = 'none';
-        previewWrap.innerHTML = '';
-    }
+    const inputPC = document.getElementById('media-upload-input');
+    // Si vous avez un id différent pour l'input mobile (ex: media-upload-input-mobile), ajoutez-le ici
+    const inputMobile = document.getElementById('media-upload-input-mobile'); 
+    
+    if(inputPC) inputPC.value = '';
+    if(inputMobile) inputMobile.value = '';
+
+    const previewWrapPC = document.getElementById('post-gif-preview-wrap');
+    const previewWrapMobile = document.getElementById('post-gif-preview-wrap-mobile');
+    
+    if (previewWrapPC) { previewWrapPC.style.display = 'none'; previewWrapPC.innerHTML = ''; }
+    if (previewWrapMobile) { previewWrapMobile.style.display = 'none'; previewWrapMobile.innerHTML = ''; }
 };
 
 window.submitPost = async function() {
@@ -6661,7 +6737,7 @@ window.seekAudio = function(e, id) {
       if (tabName === 'simulator') {
         document.body.classList.add('mobile-show-sim');
         btnSim.classList.add('active');
-        document.getElementById('mobile-top-title').innerText = "Simulateur";
+        document.getElementById('mobile-top-title').innerText = "L'Araignée";
         
         /* -- CORRECTION TRI (Cache tout) -- */
         if(mobileSort) {
@@ -6678,7 +6754,7 @@ window.seekAudio = function(e, id) {
       else if (tabName === 'profile') {
         document.body.classList.add('mobile-show-profile');
         btnProf.classList.add('active');
-        document.getElementById('mobile-top-title').innerText = "Mon profil";
+        document.getElementById('mobile-top-title').innerText = "L'Araignée";
         
         /* -- CORRECTION TRI (Cache tout) -- */
         if(mobileSort) {
@@ -6693,7 +6769,7 @@ window.seekAudio = function(e, id) {
       } 
       else { 
         btnCom.classList.add('active');
-        document.getElementById('mobile-top-title').innerText = "Fil d'actualité";
+        document.getElementById('mobile-top-title').innerText = "L'Araignée";
         
         /* -- CORRECTION TRI (N'affiche QUE le menu custom s'il existe) -- */
         if(mobileSort) {
