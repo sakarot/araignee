@@ -288,6 +288,7 @@ body.light-mode .sticky-chat-footer {
 }
 
 .bottom-nav { display: none; }
+#mobile-reset{ display: none !important; }
 
 @media (max-width: 1024px) {
   .bottom-nav { display: none; }
@@ -818,6 +819,7 @@ body.light-mode .sticky-chat-footer {
 }
 
 @media (max-width: 768px) {
+#pc-reset{ display: none !important; }
 
 	#mobile-top-title {
     font-family: 'Choplin', sans-serif !important; /* Applique la police Choplin */
@@ -884,6 +886,10 @@ header, .main-header, .top-bar, .header-container {
 
   /* Affiche le bouton Annuler sur mobile */
   #mobile-close-composer {
+    display: block !important;
+  }
+
+  #mobile-reset {
     display: block !important;
   }
 
@@ -1630,9 +1636,7 @@ body.light-mode #mobile-feed-header {
         gap: 20px !important;
     }
     .controls-header {
-        flex-direction: column;
-        align-items: flex-start !important; /* On remet à gauche */
-        text-align: left;
+        flex-direction: column; justify-content: center;
         gap: 16px;
     }
     
@@ -2030,12 +2034,15 @@ body.light-mode #mobile-feed-header {
       </div>
 
  <div class="controls-panel">
-        <div class="controls-header" style="flex-direction: column; justify-content: center;">
-          <h3 style="text-align: center; width: 100%; margin-bottom: 8px;">Candidat du Centre :</h3>
-          <div class="candidate-selector" style="width: 100%;">
-            <button id="btnAttal" class="selector-btn" onclick="setCenterCandidate('Attal')">Attal</button>
-            <button id="btnPhilippe" class="selector-btn active" onclick="setCenterCandidate('Philippe')">Philippe</button>
+                <div class="controls-header">
+          <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <h3>Candidat du Centre :</h3>
+            <div class="candidate-selector">
+              <button id="btnAttal" class="selector-btn" onclick="setCenterCandidate('Attal')">Attal</button>
+              <button id="btnPhilippe" class="selector-btn active" onclick="setCenterCandidate('Philippe')">Philippe</button>
+            </div>
           </div>
+          <button id="pc-reset" class="reset-btn" onclick="resetSliders()">↺ RESET</button>
         </div>
         
         <p style="margin-bottom:16px; font-size:12px; color:var(--text-dim); text-align: justify; hyphens: auto;"><strong style="color:var(--text);">Reports du 2<sup>nd</sup> Tour :</strong> Déplacez les curseurs pour ajuster les transferts de voix vers LFI (Rouge), vers le RN (Bleu), ou l'Abstention/Blanc (Gris).</p>
@@ -2043,7 +2050,7 @@ body.light-mode #mobile-feed-header {
         <div class="sliders-grid" id="sliders"></div>
         
         <div style="display: flex; justify-content: center; margin-top: 20px;">
-            <button class="reset-btn" onclick="resetSliders()">↺ RESET</button>
+            <button  id="mobile-reset" class="reset-btn" onclick="resetSliders()">↺ RESET</button>
         </div>
       </div>
 
@@ -3654,74 +3661,156 @@ function getRelativeTime(timestamp) {
   return `il y a ${diffAns} ${diffAns === 1 ? 'an' : 'ans'}`;
 }
 
-function toggleReaction(postId, type) {
+// --- NOUVEAU : Met à jour la couleur et le chiffre instantanément au clic ---
+window.applyOptimisticReaction = function(containerId, type) {
+    const containerEl = document.getElementById(containerId);
+    if (!containerEl) return;
+
+    const actionBtns = containerEl.querySelectorAll('.post-actions > .action-btn');
+    // Trouve le bon bouton sans se soucier de son ordre exact
+    const likeBtn = Array.from(actionBtns).find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes("'like'"));
+    const dislikeBtn = Array.from(actionBtns).find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes("'dislike'"));
+
+    if (!likeBtn || !dislikeBtn) return;
+
+    let currentLikes = parseInt(likeBtn.innerText.replace(/[^0-9]/g, '')) || 0;
+    let currentDislikes = parseInt(dislikeBtn.innerText.replace(/[^0-9]/g, '')) || 0;
+
+    if (type === 'like') {
+        if (likeBtn.classList.contains('active-like')) {
+            likeBtn.classList.remove('active-like');
+            currentLikes = Math.max(0, currentLikes - 1);
+        } else {
+            likeBtn.classList.add('active-like');
+            currentLikes++;
+            if (dislikeBtn.classList.contains('active-dislike')) {
+                dislikeBtn.classList.remove('active-dislike');
+                currentDislikes = Math.max(0, currentDislikes - 1);
+            }
+        }
+    } else {
+        if (dislikeBtn.classList.contains('active-dislike')) {
+            dislikeBtn.classList.remove('active-dislike');
+            currentDislikes = Math.max(0, currentDislikes - 1);
+        } else {
+            dislikeBtn.classList.add('active-dislike');
+            currentDislikes++;
+            if (likeBtn.classList.contains('active-like')) {
+                likeBtn.classList.remove('active-like');
+                currentLikes = Math.max(0, currentLikes - 1);
+            }
+        }
+    }
+
+    likeBtn.innerHTML = `${ICON_LIKE} ${currentLikes}`;
+    dislikeBtn.innerHTML = `${ICON_DISLIKE} ${currentDislikes}`;
+};
+// --- REMPLACEMENT : Like pour les Posts ---
+window.toggleReaction = function(postId, type) {
+  // 1. Bloque le clic "fantôme" et le saut de page HTML natif
+  if (window.event) {
+      window.event.preventDefault();
+      window.event.stopPropagation();
+  }
+  
+  // 2. Active le bouclier anti-saut (empêche l'app de tout redessiner)
+  window.isReacting = true;
+  clearTimeout(window.reactingTimeout);
+  window.reactingTimeout = setTimeout(() => { window.isReacting = false; }, 800);
+
   if (!currentUser) {
       const errorMsg = document.getElementById(`reaction-error-${postId}`);
       if (errorMsg) {
           errorMsg.style.display = 'block';
-          setTimeout(() => { errorMsg.style.display = 'none'; }, 3000); // Disparaît après 3s
+          setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
       }
       return;
-	}
+  }
+  
+  applyOptimisticReaction(`post-card-${postId}`, type);
+
   const postRef = db.collection("posts").doc(postId);
-  db.runTransaction(transaction => {
-    return transaction.get(postRef).then(doc => {
-      if (!doc.exists) throw "Post introuvable";
-      let data = doc.data();
-      let likes = data.likes || [];
-      let dislikes = data.dislikes || [];
-      let uid = currentUser.uid;
+  const uid = currentUser.uid;
+  const post = window.allPosts.find(p => p.id === postId);
+  
+  if (!post) return;
+  const hasLiked = (post.likes || []).includes(uid);
+  const hasDisliked = (post.dislikes || []).includes(uid);
 
-      if (type === 'like') {
-        if (likes.includes(uid)) {
-          likes = likes.filter(id => id !== uid); 
-        } else {
-          likes.push(uid); 
-          dislikes = dislikes.filter(id => id !== uid); 
-        }
-      } else if (type === 'dislike') {
-        if (dislikes.includes(uid)) {
-          dislikes = dislikes.filter(id => id !== uid); 
-        } else {
-          dislikes.push(uid); 
-          likes = likes.filter(id => id !== uid); 
-        }
-      }
-      transaction.update(postRef, { likes, dislikes });
-    });
-  });
-}
+  if (type === 'like') {
+    if (hasLiked) {
+      postRef.update({ likes: firebase.firestore.FieldValue.arrayRemove(uid) });
+    } else {
+      postRef.update({
+          likes: firebase.firestore.FieldValue.arrayUnion(uid),
+          dislikes: firebase.firestore.FieldValue.arrayRemove(uid)
+      });
+    }
+  } else if (type === 'dislike') {
+    if (hasDisliked) {
+      postRef.update({ dislikes: firebase.firestore.FieldValue.arrayRemove(uid) });
+    } else {
+      postRef.update({
+          dislikes: firebase.firestore.FieldValue.arrayUnion(uid),
+          likes: firebase.firestore.FieldValue.arrayRemove(uid)
+      });
+    }
+  }
+};
 
-function toggleCommentReaction(postId, commentId, type) {
+// --- REMPLACEMENT : Like pour les Commentaires ---
+window.toggleCommentReaction = function(postId, commentId, type) {
+  // 1. Bloque le clic "fantôme" et le saut de page HTML natif
+  if (window.event) {
+      window.event.preventDefault();
+      window.event.stopPropagation();
+  }
+  
+  // 2. Active le bouclier anti-saut (empêche l'app de tout redessiner)
+  window.isReacting = true;
+  clearTimeout(window.reactingTimeout);
+  window.reactingTimeout = setTimeout(() => { window.isReacting = false; }, 800);
+
   if (!currentUser) {
       const errorMsg = document.getElementById(`reaction-error-${commentId}`);
       if (errorMsg) {
           errorMsg.style.display = 'block';
-          setTimeout(() => { errorMsg.style.display = 'none'; }, 3000); // Disparaît après 3s
+          setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
       }
       return;
   }
+
+  applyOptimisticReaction(`comment-${commentId}`, type);
+
   const commentRef = db.collection("posts").doc(postId).collection("comments").doc(commentId);
+  const uid = currentUser.uid;
+  const allComments = window.postComments[postId] || [];
+  const comment = allComments.find(c => c.id === commentId);
+  
+  if (!comment) return;
+  const hasLiked = (comment.likes || []).includes(uid);
+  const hasDisliked = (comment.dislikes || []).includes(uid);
 
-  db.runTransaction(transaction => {
-    return transaction.get(commentRef).then(doc => {
-      if (!doc.exists) throw "Commentaire introuvable";
-      let data = doc.data();
-      let likes = data.likes || [];
-      let dislikes = data.dislikes || [];
-      let uid = currentUser.uid;
-
-      if (type === 'like') {
-        if (likes.includes(uid)) { likes = likes.filter(id => id !== uid); }
-        else { likes.push(uid); dislikes = dislikes.filter(id => id !== uid); }
-      } else {
-        if (dislikes.includes(uid)) { dislikes = dislikes.filter(id => id !== uid); }
-        else { dislikes.push(uid); likes = likes.filter(id => id !== uid); }
-      }
-      transaction.update(commentRef, { likes, dislikes });
-    });
-  });
-}
+  if (type === 'like') {
+    if (hasLiked) {
+      commentRef.update({ likes: firebase.firestore.FieldValue.arrayRemove(uid) });
+    } else {
+      commentRef.update({
+          likes: firebase.firestore.FieldValue.arrayUnion(uid),
+          dislikes: firebase.firestore.FieldValue.arrayRemove(uid)
+      });
+    }
+  } else {
+    if (hasDisliked) {
+      commentRef.update({ dislikes: firebase.firestore.FieldValue.arrayRemove(uid) });
+    } else {
+      commentRef.update({
+          dislikes: firebase.firestore.FieldValue.arrayUnion(uid),
+          likes: firebase.firestore.FieldValue.arrayRemove(uid)
+      });
+    }
+  }
+};
 
 db.collection("posts").orderBy("timestamp", "desc").limit(100).onSnapshot(snapshot => {
   window.allPosts = [];
@@ -7108,6 +7197,18 @@ window.renderMyProfileHistory = function(userData) {
         html = `<span style="font-size: 11px; color: var(--text-dim); font-style: italic; text-align: center;">Pas en âge de voter lors des élections passées.</span>`;
     }
     listContainer.innerHTML = html;
+};
+
+const originalRenderFeed = window.renderFeed;
+window.renderFeed = function() {
+    if (window.isReacting) return; // Si le bouclier est actif, on annule le redessin !
+    if (typeof originalRenderFeed === 'function') originalRenderFeed();
+};
+
+const originalRenderPostComments = window.renderPostComments;
+window.renderPostComments = function(postId) {
+    if (window.isReacting) return; // Si le bouclier est actif, on annule le redessin !
+    if (typeof originalRenderPostComments === 'function') originalRenderPostComments(postId);
 };
 
 </script>
