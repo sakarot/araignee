@@ -631,7 +631,8 @@ body.light-mode .sticky-chat-footer {
       display: none; 
       top: 100%; 
       left: 0;  
-      width: 100%;
+      min-width: 100% !important; 
+      width: max-content !important; 
       margin-top: 4px; 
       background: var(--surface2); 
       border: 1px solid var(--border); 
@@ -1045,6 +1046,16 @@ body.light-mode .sticky-chat-footer {
 .vote-history-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .vote-item { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; font-size: 0.9em; }
 
+/* --- MASQUER LA SCROLLBAR UNIQUEMENT POUR LE FOND DE LA MODALE --- */
+#history-modal {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE et Edge */
+}
+
+#history-modal::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari et Opera */
+}
+
 </style>
 </head>
 <body>
@@ -1178,7 +1189,7 @@ body.light-mode .sticky-chat-footer {
       </div>
     </div>
 	<div style="margin-left: 4px; margin-top: 10px;">
-      <button class="minimal-gif-btn" style="font-size: 10px; padding: 4px 8px;" onclick="openHistoryEditor()">Gérer mon historique de vote</button>
+      <button class="minimal-gif-btn" style="font-size: 10px; padding: 4px 8px;" onclick="openHistoryEditor()">Historique de vote</button>
     </div>
   </div>
           
@@ -2470,10 +2481,10 @@ auth.onAuthStateChanged(user => {
               </div>
             `;
             
-            getUserPartyClass(fUid).then(pc => {
-              const el = document.getElementById(`friend-pseudo-${fUid}`);
-              if (el && pc) el.classList.add(pc);
-            });
+            getUserMixedColor(fUid).then(color => {
+  const el = document.getElementById(`friend-pseudo-${fUid}`);
+  if (el) el.style.color = color;
+});
           }
         });
 
@@ -2625,22 +2636,42 @@ function handleVoteClick() {
 }
 
 let myVoteListener = null;
+let myUserListener = null;
 
 function fetchMyVote() {
   if (myVoteListener) myVoteListener();
+  if (myUserListener) myUserListener();
+
+  let currentVote = null;
+  let historyVotes = [];
+
+  const updateMyUIColors = () => {
+      const color = getMixedUserColor(currentVote, historyVotes);
+      document.getElementById('user-badge').style.background = color;
+      document.getElementById('user-display-name').style.color = color;
+      document.getElementById('dropdown-username').style.color = color;
+      window.userColorCache[currentUser.uid] = color; // Met à jour le cache local
+  };
+
   myVoteListener = db.collection("votes").doc(currentUser.uid).onSnapshot(doc => {
     if (doc.exists) {
-      const monVote = doc.data().parti;
-	  document.getElementById('vote-selector').value = monVote;
-	  syncCustomSelectUI('vote-selector');
-      const couleurCandidat = COULEURS[monVote] || 'var(--text)';
-      document.getElementById('user-badge').style.background = couleurCandidat;
-      document.getElementById('user-display-name').style.color = couleurCandidat;
+      currentVote = doc.data().parti;
+      document.getElementById('vote-selector').value = currentVote;
+      syncCustomSelectUI('vote-selector');
     } else {
+      currentVote = null;
       document.getElementById('vote-selector').value = "";
-      document.getElementById('user-badge').style.background = 'transparent';
-      document.getElementById('user-display-name').style.color = '';
     }
+    updateMyUIColors();
+  });
+
+  myUserListener = db.collection("users").doc(currentUser.uid).onSnapshot(doc => {
+    if (doc.exists && doc.data().history) {
+        historyVotes = Object.values(doc.data().history).filter(v => v);
+    } else {
+        historyVotes = [];
+    }
+    updateMyUIColors();
   });
 }
 
@@ -2861,7 +2892,8 @@ function renderFeed() {
     postEl.className = 'post-card';
 	postEl.id = `post-card-${postId}`;
 
-    const pc = post.partyClass || ''; 
+   const pc = post.partyClass || ''; 
+    const colorStyle = post.userColor ? `color: ${post.userColor} !important;` : '';
     
     let deleteBtnHtml = '';
     if (currentUser && currentUser.uid === post.uid) {
@@ -2874,7 +2906,7 @@ function renderFeed() {
     postEl.innerHTML = `
       <div class="post-header">
         <div style="display:flex; align-items:center;">
-            <span class="post-pseudo ${pc}" style="cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile(&quot;${post.pseudo}&quot;)">${post.pseudo}</span>
+            <span class="post-pseudo ${pc}" style="${colorStyle} cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile('${post.pseudo.replace(/'/g, "\\'")}')">${post.pseudo}</span>
             ${deleteBtnHtml}
         </div>
         <span class="post-time">${getRelativeTime(post.timestamp)}</span>
@@ -3087,14 +3119,16 @@ async function submitPost() {
 
   const partyClass = await getUserPartyClass(currentUser.uid);
   const pseudoUser = currentUser.displayName || currentUser.email.split('@')[0];
-
-  if (window.mainReplyTarget) {
+  const userColor = await getUserMixedColor(currentUser.uid);
+  
+ if (window.mainReplyTarget) {
     const target = window.mainReplyTarget;
     db.collection("posts").doc(target.postId).collection("comments").add({
-      uid: currentUser.uid,
-      pseudo: pseudoUser,
-      partyClass: partyClass,
-      text: text,
+    uid: currentUser.uid,
+    pseudo: currentUser.displayName || currentUser.email.split('@')[0],
+    partyClass: partyClass,
+    userColor: userColor, 
+    text: text,
       gifUrl: gifUrl,
       poll: pollData,       
       pollVotes: {},        
@@ -3212,11 +3246,13 @@ async function submitComment(postId) {
   let target = window.currentReplyTarget[postId];
   let parentId = target ? target.commentId : null;
   const partyClass = await getUserPartyClass(currentUser.uid);
+  const userColor = await getUserMixedColor(currentUser.uid); // <--- Ligne ajoutée
 
   db.collection("posts").doc(postId).collection("comments").add({
     uid: currentUser.uid,
     pseudo: currentUser.displayName || currentUser.email.split('@')[0],
     partyClass: partyClass,
+    userColor: userColor, // <--- Ligne ajoutée
     text: text,
     gifUrl: gifEl,
     parentId: parentId, 
@@ -3228,7 +3264,6 @@ async function submitComment(postId) {
         commentCount: firebase.firestore.FieldValue.increment(1)
     }, { merge: true });
 
-    // NOUVEAU : Force l'ouverture du fil pour voir sa réponse immédiatement !
     if (parentId) {
         openAncestors(postId, parentId);
     }
@@ -3775,9 +3810,10 @@ async function votePoll(postId, commentId, optionId) {
   }
   
   const partyClass = await getUserPartyClass(currentUser.uid);
+  const userColor = await getUserMixedColor(currentUser.uid);
   const pseudo = currentUser.displayName || currentUser.email.split('@')[0];
   
-  const voteData = { optionId, pseudo, partyClass };
+  const voteData = { optionId, pseudo, partyClass, userColor };
   const ref = commentId 
       ? db.collection("posts").doc(postId).collection("comments").doc(commentId)
       : db.collection("posts").doc(postId);
@@ -4006,9 +4042,9 @@ function buildCommentNodeHtml(c, allComments, isRoot, focusPath = [], focusId = 
     let hasDisliked = currentUser ? (c.dislikes || []).includes(currentUser.uid) : false;
     let imgHtml = c.gifUrl ? `<img src="${c.gifUrl}" class="post-img" style="max-height: 120px;" onerror="this.style.display='none'">` : '';
     
-    // On a retiré le font-size forcé ici
     let textHtml = c.text ? `<div class="post-body" style="margin-bottom: 6px;">${formatText(c.text)}</div>` : '';
     const pc = c.partyClass || '';
+    const colorStyle = c.userColor ? `color: ${c.userColor} !important;` : '';
     
     let deleteBtnHtml = '';
     if (currentUser && currentUser.uid === c.uid) {
@@ -4034,7 +4070,7 @@ function buildCommentNodeHtml(c, allComments, isRoot, focusPath = [], focusId = 
     if (c.parentId) {
         const parentComment = allComments.find(p => p.id === c.parentId);
         if (parentComment && parentComment.pseudo) {
-            replyIndicator = `<span class="reply-indicator">en réponse à <span class="mention-link" onclick="event.stopPropagation(); openUserProfile('${parentComment.pseudo}')">@${parentComment.pseudo}</span></span>`;
+            replyIndicator = `<span class="reply-indicator">en réponse à <span class="mention-link" onclick="event.stopPropagation(); window.openUserProfile('${parentComment.pseudo.replace(/'/g, "\\'")}')">@${parentComment.pseudo}</span></span>`;
         }
     }
 
@@ -4044,7 +4080,7 @@ function buildCommentNodeHtml(c, allComments, isRoot, focusPath = [], focusId = 
     <div id="comment-${c.id}" class="comment-card ${targetClass}" ${cardClickAttr}>
       <div class="post-header" style="margin-bottom: 4px;">
         <div style="display:flex; align-items:center; flex-wrap: wrap;">
-            <span class="post-pseudo ${pc}" style="cursor:pointer;" onclick="event.stopPropagation(); openUserProfile('${c.pseudo}')">${c.pseudo}</span>
+            <span class="post-pseudo ${pc}" style="${colorStyle} cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile('${c.pseudo.replace(/'/g, "\\'")}')">${c.pseudo}</span>
 			${deleteBtnHtml}
             ${replyIndicator}
         </div>
@@ -4227,22 +4263,35 @@ window.openUserProfile = async function(pseudoToFind) {
             const dateMajorite = new Date(userData.dob);
             dateMajorite.setFullYear(dateMajorite.getFullYear() + 18);
 
-            const electionsEligibles = ELECTIONS_FRANCE.filter(elec => new Date(elec.date) >= dateMajorite);
-            
-            if (electionsEligibles.length > 0) {
-                electionsEligibles.forEach(elec => {
-                    const rawVote = userData.history && userData.history[elec.id] ? userData.history[elec.id] : '';
-                    let displayVote = rawVote;
-                    let color = COULEURS[rawVote] || 'var(--text)';
-                    
-                    if (rawVote === 'ABS') { displayVote = 'Abstention'; color = 'var(--text-dim)'; }
-                    else if (rawVote === 'BLANC') { displayVote = 'Vote Blanc'; color = 'var(--text-dim)'; }
-                    else if (!rawVote || rawVote === 'Non renseigné') { displayVote = 'Non renseigné'; color = 'var(--text-dim)'; }
-                    else if (PARTIS[rawVote]) { displayVote = `${PARTIS[rawVote]} (${rawVote})`; }
+            const years = ['2022', '2017', '2012', '2007', '2002', '1995'];
+            let hasHistory = false;
 
-                    votesHtml += `<div class="vote-item"><strong>${elec.nom} :</strong> <span style="color: ${color}; font-weight: bold;">${displayVote}</span></div>`;
-                });
-            } else {
+            years.forEach(year => {
+                const elecDate = new Date(`${year}-04-20`); // Approximation de la date du 1er tour
+                if (elecDate >= dateMajorite) {
+                    hasHistory = true;
+                    ['T1', 'T2'].forEach(tour => {
+                        const histKey = `pres_${year}_${tour}`;
+                        const rawVote = userData.history && userData.history[histKey] ? userData.history[histKey] : '';
+                        
+                        let displayVote = rawVote;
+                        let color = COULEURS[rawVote] || 'var(--text)';
+                        
+                        if (rawVote === 'ABS') { displayVote = 'Abstention'; color = 'var(--text-dim)'; }
+                        else if (rawVote === 'BLANC') { displayVote = 'Vote Blanc / Nul'; color = 'var(--text-dim)'; }
+                        else if (!rawVote || rawVote === 'Non renseigné') { displayVote = 'Non renseigné'; color = 'var(--text-dim)'; }
+                        else if (HISTORICAL_DATA[year][tour].candidats[rawVote]) {
+                            const candName = HISTORICAL_DATA[year][tour].candidats[rawVote];
+                            const partyName = getPartyName(rawVote, year);
+                            displayVote = `${candName} (${partyName})`;
+                        }
+
+                        votesHtml += `<div class="vote-item"><strong>Présidentielle ${year} (${tour === 'T1' ? '1er' : '2nd'} Tour) :</strong> <span style="color: ${color}; font-weight: bold;">${displayVote}</span></div>`;
+                    });
+                }
+            });
+            
+            if (!hasHistory) {
                 votesHtml += `<div style="font-size:0.9em; color:var(--text-dim); margin-top:8px;">Pas encore en âge de voter lors des dernières élections.</div>`;
             }
         } else {
@@ -4276,8 +4325,6 @@ window.openUserProfile = async function(pseudoToFind) {
     }
 };
 
-// --- GESTION DE L'HISTORIQUE DE VOTE ---
-
 window.openHistoryEditor = async function() {
     if (!currentUser) return;
     
@@ -4294,45 +4341,56 @@ window.openHistoryEditor = async function() {
     const dateMajorite = new Date(userData.dob);
     dateMajorite.setFullYear(dateMajorite.getFullYear() + 18);
 
-    const electionsEligibles = ELECTIONS_FRANCE.filter(elec => new Date(elec.date) >= dateMajorite);
+    const years = ['2022', '2017', '2012', '2007', '2002', '1995'];
+    let formHtml = '';
+    let hasElections = false;
 
-    if (electionsEligibles.length === 0) {
+    // 3. Créer le formulaire
+    years.forEach(year => {
+        const elecDate = new Date(`${year}-04-20`);
+        if (elecDate >= dateMajorite) {
+            hasElections = true;
+            ['T1', 'T2'].forEach(tour => {
+                const histKey = `pres_${year}_${tour}`;
+                const currentVal = history[histKey] || '';
+                
+                formHtml += `
+                <div style="margin-bottom: 12px;">
+                    <label style="display:block; font-size:11px; margin-bottom:4px; color:var(--text-dim);">Présidentielle ${year} - ${tour === 'T1' ? '1er' : '2nd'} Tour</label>
+                    <select id="hist_${histKey}" class="minimal-gif-btn4" style="width:100%; padding:8px; border-radius:6px; background:var(--bg); color:var(--text); border:1px solid var(--border);">
+                        <option value="" style="color: var(--text-dim);">Non renseigné</option>
+                        <option value="ABS" style="color: var(--text-dim); font-style: italic;" ${currentVal==='ABS'?'selected':''}>Abstention</option>
+                        <option value="BLANC" style="color: var(--text-dim); font-style: italic;" ${currentVal==='BLANC'?'selected':''}>Vote Blanc / Nul</option>
+                `;
+                
+                const candidatsList = HISTORICAL_DATA[year][tour].candidats;
+                Object.keys(candidatsList).forEach(code => {
+                    const candName = candidatsList[code];
+                    const partyName = getPartyName(code, year);
+                    const color = COULEURS[code] || 'var(--text)';
+                    formHtml += `<option value="${code}" style="color: ${color}; font-weight: bold;" ${currentVal===code?'selected':''}>${candName} (${partyName})</option>`;
+                });
+                
+                formHtml += `</select></div>`;
+            });
+        }
+    });
+
+    if (!hasElections) {
         return alert("Vous n'étiez pas en âge de voter lors des élections passées !");
     }
 
-    // 3. Créer le formulaire
-    let formHtml = '';
-    electionsEligibles.forEach(elec => {
-        const currentVal = history[elec.id] || '';
-        formHtml += `
-        <div style="margin-bottom: 12px;">
-            <label style="display:block; font-size:11px; margin-bottom:4px; color:var(--text-dim);">${elec.nom}</label>
-            <select id="hist_${elec.id}" style="width:100%; padding:8px; border-radius:6px; background:var(--bg); color:var(--text); border:1px solid var(--border);">
-                <option value="">Non renseigné</option>
-                <option value="ABS" ${currentVal==='ABS'?'selected':''}>Abstention</option>
-                <option value="BLANC" ${currentVal==='BLANC'?'selected':''}>Vote Blanc / Nul</option>
-                <option value="LO" ${currentVal==='LO'?'selected':''}>Lutte Ouvrière (LO)</option>
-                <option value="PCF" ${currentVal==='PCF'?'selected':''}>Parti Communiste (PCF)</option>
-                <option value="LFI" ${currentVal==='LFI'?'selected':''}>La France Insoumise (LFI)</option>
-                <option value="EELV" ${currentVal==='EELV'?'selected':''}>Les Écologistes (EELV)</option>
-                <option value="PS" ${currentVal==='PS'?'selected':''}>Parti Socialiste (PS)</option>
-                <option value="REN" ${currentVal==='REN'?'selected':''}>Renaissance / LREM</option>
-                <option value="HZ" ${currentVal==='HZ'?'selected':''}>Horizons / Centre / MoDem</option>
-                <option value="LR" ${currentVal==='LR'?'selected':''}>Les Républicains (LR/UMP)</option>
-                <option value="DF" ${currentVal==='DF'?'selected':''}>Debout la France</option>
-                <option value="RN" ${currentVal==='RN'?'selected':''}>Rassemblement National (RN/FN)</option>
-                <option value="RQ" ${currentVal==='RQ'?'selected':''}>Reconquête</option>
-            </select>
-        </div>`;
-    });
-
+    // MODIFICATION ICI : On rend le fond noir défilant (overflow-y: auto) 
+    // et on enlève la restriction à l'intérieur de la carte !
     const modalHtml = `
-    <div id="history-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center;" onclick="this.remove()">
-        <div class="profile-modal-content" onclick="event.stopPropagation()">
+    <div id="history-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:flex-start; justify-content:center; overflow-y:auto; padding: 40px 0;" onclick="this.remove()">
+        <div class="profile-modal-content" style="margin: auto; overflow: visible;" onclick="event.stopPropagation()">
             <h2 style="margin-top:0; margin-bottom:15px; font-size:18px;">Mon Historique</h2>
-            <div style="max-height: 50vh; overflow-y: auto; padding-right: 5px;">
+            
+            <div>
                 ${formHtml}
             </div>
+            
             <div style="display:flex; justify-content:space-between; margin-top:20px; align-items: center;">
                 <button class="minimal-gif-btn" onclick="document.getElementById('history-modal').remove()">Annuler</button>
                 <button class="minimal-gif-btn2" onclick="saveHistoryEditor()">Enregistrer</button>
@@ -4341,18 +4399,25 @@ window.openHistoryEditor = async function() {
     </div>`;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Initialise le design custom pour les nouveaux selects ajoutés dans le DOM
+    const selects = document.querySelectorAll("#history-modal select.minimal-gif-btn4");
+    selects.forEach(select => buildCustomSelect(select));
 };
 
 window.saveHistoryEditor = function() {
     if (!currentUser) return;
     const historyUpdates = {};
     
-    // Parcourir toutes les élections possibles pour voir ce que l'utilisateur a rempli
-    ELECTIONS_FRANCE.forEach(elec => {
-        const selectEl = document.getElementById(`hist_${elec.id}`);
-        if (selectEl) {
-            historyUpdates[elec.id] = selectEl.value;
-        }
+    // Parcourir toutes les années pour extraire les réponses
+    const years = ['2022', '2017', '2012', '2007', '2002', '1995'];
+    years.forEach(year => {
+        ['T1', 'T2'].forEach(tour => {
+            const selectEl = document.getElementById(`hist_pres_${year}_${tour}`);
+            if (selectEl) {
+                historyUpdates[`pres_${year}_${tour}`] = selectEl.value;
+            }
+        });
     });
 
     // Sauvegarde dans Firebase (merge: true permet de ne pas écraser les autres données)
@@ -4360,7 +4425,6 @@ window.saveHistoryEditor = function() {
         history: historyUpdates
     }, { merge: true }).then(() => {
         document.getElementById('history-modal').remove();
-        // Optionnel : afficher un petit message de succès
         const bioText = document.getElementById('user-bio-text');
         const oldText = bioText.innerText;
         bioText.innerText = "Historique sauvegardé !";
@@ -4374,6 +4438,64 @@ window.saveHistoryEditor = function() {
         alert("Erreur lors de la sauvegarde.");
     });
 };
+
+function getMixedUserColor(currentVote, historyVotesArray) {
+    // 1. Calculer la moyenne des couleurs de l'historique (50% du poids)
+    const validHist = historyVotesArray.filter(v => COULEURS[v] && v !== 'ABS' && v !== 'BLANC');
+    let histR = 0, histG = 0, histB = 0;
+    
+    if (validHist.length > 0) {
+        validHist.forEach(code => {
+            const hex = COULEURS[code];
+            histR += parseInt(hex.substring(1, 3), 16);
+            histG += parseInt(hex.substring(3, 5), 16);
+            histB += parseInt(hex.substring(5, 7), 16);
+        });
+        histR /= validHist.length;
+        histG /= validHist.length;
+        histB /= validHist.length;
+    }
+
+    // 2. Obtenir la couleur du vote actuel (50% du poids)
+    const currentValid = (currentVote && COULEURS[currentVote] && currentVote !== 'ABS' && currentVote !== 'BLANC');
+    let currR = 0, currG = 0, currB = 0;
+    if (currentValid) {
+        const hex = COULEURS[currentVote];
+        currR = parseInt(hex.substring(1, 3), 16);
+        currG = parseInt(hex.substring(3, 5), 16);
+        currB = parseInt(hex.substring(5, 7), 16);
+    }
+
+    // 3. Effectuer le mélange 50/50
+    if (currentValid && validHist.length > 0) {
+        const finalR = Math.round((currR + histR) / 2);
+        const finalG = Math.round((currG + histG) / 2);
+        const finalB = Math.round((currB + histB) / 2);
+        return `rgb(${finalR}, ${finalG}, ${finalB})`;
+    } else if (currentValid) {
+        return `rgb(${currR}, ${currG}, ${currB})`;
+    } else if (validHist.length > 0) {
+        return `rgb(${Math.round(histR)}, ${Math.round(histG)}, ${Math.round(histB)})`;
+    } else {
+        return 'var(--text)'; // Couleur par défaut si aucun vote valide
+    }
+}
+
+async function applyMixedColorToPseudo(uid, elementId) {
+    const userDoc = await db.collection("users").doc(uid).get();
+    const voteDoc = await db.collection("votes").doc(uid).get();
+    if (!userDoc.exists && !voteDoc.exists) return;
+
+    const historyMap = userDoc.exists ? (userDoc.data().history || {}) : {};
+    const current = voteDoc.exists ? voteDoc.data().parti : null;
+
+    // Extraire uniquement les votes renseignés de l'historique
+    const histVotes = Object.values(historyMap).filter(v => v);
+
+    const color = getMixedUserColor(current, histVotes);
+    const el = document.getElementById(elementId);
+    if (el) el.style.color = color;
+}
 
 // 1. Fonction pour construire ou mettre à jour le design d'un menu déroulant
 function buildCustomSelect(select) {
@@ -4695,6 +4817,79 @@ function saveBio() {
     console.error("Erreur lors de la sauvegarde de la bio:", err);
     alert("Impossible de sauvegarder la bio. Vérifiez la connexion ou les règles Firestore.");
   });
+}
+
+window.userColorCache = {};
+
+function getMixedUserColor(currentVote, historyVotesArray) {
+    const validHist = historyVotesArray.filter(v => COULEURS[v] && v !== 'ABS' && v !== 'BLANC');
+    let histR = 0, histG = 0, histB = 0;
+    
+    if (validHist.length > 0) {
+        validHist.forEach(code => {
+            const hex = COULEURS[code];
+            histR += parseInt(hex.substring(1, 3), 16);
+            histG += parseInt(hex.substring(3, 5), 16);
+            histB += parseInt(hex.substring(5, 7), 16);
+        });
+        histR /= validHist.length;
+        histG /= validHist.length;
+        histB /= validHist.length;
+    }
+
+    const currentValid = (currentVote && COULEURS[currentVote] && currentVote !== 'ABS' && currentVote !== 'BLANC');
+    let currR = 0, currG = 0, currB = 0;
+    if (currentValid) {
+        const hex = COULEURS[currentVote];
+        currR = parseInt(hex.substring(1, 3), 16);
+        currG = parseInt(hex.substring(3, 5), 16);
+        currB = parseInt(hex.substring(5, 7), 16);
+    }
+
+    if (currentValid && validHist.length > 0) {
+        return `rgb(${Math.round((currR + histR) / 2)}, ${Math.round((currG + histG) / 2)}, ${Math.round((currB + histB) / 2)})`;
+    } else if (currentValid) {
+        return `rgb(${currR}, ${currG}, ${currB})`;
+    } else if (validHist.length > 0) {
+        return `rgb(${Math.round(histR)}, ${Math.round(histG)}, ${Math.round(histB)})`;
+    } else {
+        return 'var(--text)'; // Couleur par défaut si aucun vote
+    }
+}
+
+async function getUserMixedColor(uid) {
+    if (window.userColorCache[uid]) return window.userColorCache[uid];
+    try {
+        const [userDoc, voteDoc] = await Promise.all([
+            db.collection("users").doc(uid).get(),
+            db.collection("votes").doc(uid).get()
+        ]);
+        const historyMap = userDoc.exists ? (userDoc.data().history || {}) : {};
+        const current = voteDoc.exists ? voteDoc.data().parti : null;
+        const histVotes = Object.values(historyMap).filter(v => v);
+        const color = getMixedUserColor(current, histVotes);
+        window.userColorCache[uid] = color; // Mise en cache
+        return color;
+    } catch (e) {
+        return 'var(--text)';
+    }
+}
+
+function buildElectionLists(data) {
+    const result = {};
+
+    Object.entries(data).forEach(([year, rounds]) => {
+        Object.entries(rounds).forEach(([round, content]) => {
+            const key = `${year}_${round}`;
+
+            result[key] = Object.entries(content.candidats).map(([code, name]) => ({
+                code,
+                name
+            }));
+        });
+    });
+
+    return result;
 }
 
 </script>
