@@ -6403,19 +6403,33 @@ window.toggleAudioRecord = async function() {
     if(typeof removeSelectedGif === 'function') removeSelectedGif('post');
     if(typeof window.removeSelectedMedia === 'function') window.removeSelectedMedia();
 
-    try {
+try {
         audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
-        mediaRecorder = new MediaRecorder(audioStream);
+        
+        // --- 1. SÉLECTION DU FORMAT (Sauve les iPhone !) ---
+        let audioFormat = '';
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            audioFormat = 'audio/mp4'; // Format préféré d'Apple
+        } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            audioFormat = 'audio/webm;codecs=opus';
+        } else {
+            audioFormat = 'audio/webm';
+        }
+        
+        mediaRecorder = new MediaRecorder(audioStream, { mimeType: audioFormat });
         audioChunks = [];
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
         mediaRecorder.onstop = async () => {
-            const blob = new Blob(audioChunks, { type: 'audio/webm' });
+            // --- 2. CRÉATION DU FICHIER AVEC LE BON FORMAT ---
+            const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
             const reader = new FileReader();
             reader.onloadend = () => {
                 window.selectedMediaDataUrl = reader.result;
-                // Hack pour valider la condition isAudio du script submitPost existant
-                window.selectedMediaFile = new File([blob], "audio.webm", { type: "audio/webm" });
+                
+                // On adapte l'extension pour le fichier final au lieu de forcer .webm
+                const fileExt = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+                window.selectedMediaFile = new File([blob], `audio.${fileExt}`, { type: mediaRecorder.mimeType });
                 
                 playBtn.style.display = 'flex';
 				document.getElementById('speedbtn-preview').style.display = 'flex';
