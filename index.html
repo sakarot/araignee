@@ -715,18 +715,20 @@ body.light-mode .sticky-chat-footer {
   .hashtag-bar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
 
   .chat-input-area { padding: 12px 16px 16px 16px; background: transparent; display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); }
-  .chat-input-area textarea { 
+.chat-input-area textarea { 
     width: 100%; 
-    background: var(--bg); /* Utilise le fond bleu nuit profond */
+    background: var(--bg); 
     border: 1px solid var(--border); 
     color: var(--text); 
     border-radius: 8px; 
     padding: 10px; 
     font-family: 'DM Sans', sans-serif; 
     resize: none; 
+    min-height: 60px; /* Transformé en min-height */
     height: 60px; 
     font-size: 13px; 
-}
+    overflow-y: hidden; /* Cache la barre de défilement par défaut */
+  }
   .hashtag-pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: bold; font-family: 'Space Mono', monospace; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; }
   .hashtag-count { background: var(--bg); padding: 2px 6px; border-radius: 10px; font-size: 9px; }
   .hashtag-count:hover {
@@ -799,10 +801,22 @@ body.light-mode .sticky-chat-footer {
   .poll-tooltip-title { font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; font-family: 'DM Serif Display', serif; font-size: 14px;}
 
 
+/* Fond de la modale Historique sur PC (Léger) */
+#history-modal {
+    background: color-mix(in srgb, var(--bg) 10%, transparent);
+}
+
 @media (max-width: 768px) {
 .community-footer {
     display: none !important;
   }
+  
+  /* Fond de la modale Historique sur Mobile (Sombre et flouté) */
+#history-modal {
+    background: color-mix(in srgb, var(--bg) 80%, transparent) !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+}
   
   /* ── Le panneau s'ouvre proprement au-dessus de la navigation ── */
   body.mobile-composer-open .community-footer {
@@ -997,36 +1011,9 @@ body.light-mode .sticky-chat-footer {
       transition: transform 0.3s ease-in-out;
       box-sizing: border-box;
   }
-  
-  .community-sidebar > div:nth-child(4) { 
-      position: absolute;
-      top: 45px; 
-      left: 0;
-      width: 100%;
-      background: rgba(13, 27, 42, 0.8) !important;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      z-index: 50;
-      border-bottom: none !important;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease-in-out;
-      box-sizing: border-box;
-  }
 
-
-  /* ── 5. GESTION DU MODE CLAIR POUR LES BARRES FLOTTANTES ── */
-  body.light-mode .community-sidebar .chat-header,
-  body.light-mode .community-sidebar > div:nth-child(4) {
-      background: rgba(229, 236, 244, 0.85) !important;
-  }
   body.light-mode .bottom-nav {
       background: rgba(248, 250, 252, 0.85) !important;
-  }
-
-  /* ── 6. ANIMATION : LES BARRES DU HAUT DISPARAISSENT AU SCROLL ── */
-  body.nav-hidden .community-sidebar .chat-header,
-  body.nav-hidden .community-sidebar > div:nth-child(4) {
-      transform: translateY(-150%) !important;
   }
   
   .post-body  { font-size: 14px; line-height: 1.45; }
@@ -1048,7 +1035,8 @@ body.light-mode .sticky-chat-footer {
     z-index: 40;
   }
 
-  textarea#post-text {
+textarea#post-text {
+    min-height: 52px; /* Transformé en min-height */
     height: 52px;
     border-radius: 10px;
     padding: 10px 12px;
@@ -1408,6 +1396,70 @@ body.light-mode #mobile-feed-header {
     body.light-mode .bottom-nav {
         background: color-mix(in srgb, var(--bg) 80%, transparent);
     }
+	
+	chat-input-area #btn-camera,
+  .chat-input-area #btn-upload-media,
+  .chat-input-area #btn-toggle-poll,
+  .chat-input-area #btn-audio-record,
+  .chat-input-area #gif-btn-post {
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 12px !important;
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box;
+  }
+
+  /* Taille uniforme pour les icônes à l'intérieur */
+  .chat-input-area #btn-camera svg,
+  .chat-input-area #btn-upload-media svg,
+  .chat-input-area #btn-toggle-poll svg,
+  .chat-input-area #btn-audio-record svg {
+      width: 18px;
+      height: 18px;
+  }
+  
+  /* Taille spéciale pour le texte "GIF" */
+  .chat-input-area #gif-btn-post {
+      font-size: 13px !important;
+  }
+
+  /* ── 2. Masquer le bouton de partage ── */
+  .share-btn-action {
+      display: none !important;
+  }
+  
+  /* ── Fond sombre (Backdrop) derrière les menus ── */
+  #mobile-menu-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      /* Mélange parfait à 80% de votre var(--bg) */
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: blur(3px); /* Flou esthétique en dessous */
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 9990; /* Juste en dessous des menus */
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      cursor: pointer;
+  }
+
+  /* Classe qui active le fond */
+  #mobile-menu-backdrop.active {
+      opacity: 1;
+      visibility: visible;
+  }
+
+  /* Assurez-vous que les menus passent bien au-dessus du fond ! */
+  #user-dropdown, #friends-dropdown {
+      z-index: 9995 !important;
+  }
+
 }
 
 </style>
@@ -1502,6 +1554,11 @@ body.light-mode #mobile-feed-header {
     </button>
 
           <div id="user-dropdown" class="user-dropdown">
+            
+            <div style="display: flex; justify-content: flex-end; margin-bottom: -4px;">
+              <button class="edit-pseudo-btn" onclick="closeAllMobileMenus()" title="Fermer" style="font-size: 20px; padding: 0; line-height: 1;">×</button>
+            </div>
+
             <div id="dropdown-logged-out" style="display: flex; flex-direction: column; gap: 8px;">
               <span id="auth-title" style="font-size: 12px; color: var(--text-dim);">Connectez-vous :</span>
               <input type="text" id="reg-pseudo-input" placeholder="Pseudo" style="display: none; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px;">
@@ -1738,6 +1795,12 @@ body.light-mode #mobile-feed-header {
       </div>
 
       <div id="friends-dropdown" class="friends-dropdown">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-size: 14px; font-weight: bold; color: var(--text);">Mes amis</span>
+            <button class="edit-pseudo-btn" onclick="closeAllMobileMenus()" title="Fermer" style="font-size: 20px; padding: 0; line-height: 1;">×</button>
+        </div>
+
         <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 4px;">Ajouter un ami :</div>
         <div class="add-friend-row">
           <input type="text" id="add-friend-input" placeholder="Pseudo exact...">
@@ -3005,6 +3068,8 @@ window.toggleUserMenu = function() {
     if(btn1) btn1.classList.toggle('active');
     if(btn2) btn2.classList.toggle('active');
     menu.classList.toggle('show');
+    if (menu.classList.contains('show')) showMenuBackdrop();
+    else closeAllMobileMenus();
 };
 
 function startInlineEdit() {
@@ -3865,6 +3930,8 @@ window.toggleFriendsMenu = function() {
     if(btn1) btn1.classList.toggle('active');
     if(btn2) btn2.classList.toggle('active');
     menu.classList.toggle('show');
+    if (menu.classList.contains('show')) showMenuBackdrop();
+    else closeAllMobileMenus();
 };
 
 function addFriend() {
@@ -4947,17 +5014,19 @@ window.openHistoryEditor = async function() {
             
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:10px;">
                 <h2 style="margin:0; font-size:18px; white-space:nowrap;">Mon Historique</h2>
-                <select id="selectHistoryYear" class="minimal-gif-btn4" onchange="changeHistoryEditorYear(this.value)">
-                    ${selectOptionsHtml}
-                </select>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <select id="selectHistoryYear" class="minimal-gif-btn4" onchange="changeHistoryEditorYear(this.value)">
+                        ${selectOptionsHtml}
+                    </select>
+                    <button class="edit-pseudo-btn" onclick="document.getElementById('history-modal').remove()" title="Fermer" style="font-size: 20px; padding: 0; line-height: 1;">×</button>
+                </div>
             </div>
             
             <div>
                 ${formHtml}
             </div>
             
-            <div style="display:flex; justify-content:space-between; margin-top:20px; align-items: center;">
-                <button class="minimal-gif-btn" onclick="document.getElementById('history-modal').remove()">Annuler</button>
+            <div style="display:flex; justify-content:flex-end; margin-top:20px; align-items: center;">
                 <button class="minimal-gif-btn2" onclick="saveHistoryEditor()">Enregistrer</button>
             </div>
         </div>
@@ -5761,6 +5830,7 @@ window.submitPost = async function() {
 
       extractAndCountHashtags(text);
       textEl.value = '';
+	  document.getElementById('post-text').dispatchEvent(new Event('input'));
       
       // Nettoyage de l'interface après l'envoi
       if (typeof removeSelectedGif === 'function') removeSelectedGif('post');
@@ -6271,6 +6341,7 @@ window.closeMobileComposer = function() {
     // 2. Nettoie complètement la zone de saisie
     const textarea = document.getElementById('post-text');
     if (textarea) textarea.value = '';
+	document.getElementById('post-text').dispatchEvent(new Event('input'));
     
     if (typeof removeSelectedGif === 'function') removeSelectedGif('post');
     if (typeof window.removeSelectedMedia === 'function') window.removeSelectedMedia();
@@ -6330,6 +6401,53 @@ window.prepareMainReply = function(postId, commentId, pseudo) {
     window.addEventListener('scroll', handleScroll, { passive: true });
 })();
 
+// --- AUTO-AGRANDISSEMENT DE LA ZONE DE TEXTE ---
+const postTextarea = document.getElementById('post-text');
+if (postTextarea) {
+    postTextarea.addEventListener('input', function() {
+        this.style.height = 'auto'; // Réinitialise pour calculer la vraie hauteur
+        let newHeight = this.scrollHeight;
+        if (newHeight > 150) { // Limite l'agrandissement à 150px maximum
+            newHeight = 150;
+            this.style.overflowY = 'auto';
+        } else {
+            this.style.overflowY = 'hidden';
+        }
+        this.style.height = newHeight + 'px';
+    });
+}
+
+// --- GESTION DU FOND SOMBRE DES MENUS ---
+
+// 1. Affiche le fond (uniquement sur mobile)
+window.showMenuBackdrop = function() {
+    if (window.innerWidth <= 768) {
+        document.getElementById('mobile-menu-backdrop')?.classList.add('active');
+    }
+};
+
+// 2. Fonction magique qui ferme TOUT quand on clique à côté
+window.closeAllMobileMenus = function() {
+    // Masque le fond
+    document.getElementById('mobile-menu-backdrop')?.classList.remove('active');
+
+    // Ferme le Menu Profil
+    const userMenu = document.getElementById('user-dropdown');
+    if (userMenu) userMenu.classList.remove('show');
+    document.getElementById('user-icon-btn')?.classList.remove('active');
+    document.getElementById('mobile-user-btn')?.classList.remove('active');
+
+    // Ferme le Menu Amis
+    const friendsMenu = document.getElementById('friends-dropdown');
+    if (friendsMenu) friendsMenu.classList.remove('show');
+    document.getElementById('friends-btn')?.classList.remove('active');
+    document.getElementById('mobile-friends-btn')?.classList.remove('active');
+
+    // AJOUTEZ ICI LA FERMETURE DES AUTRES MENUS (Login, affichage de profil...)
+    // Exemple : document.getElementById('login-modal')?.classList.remove('show');
+};
+
 </script>
+<div id="mobile-menu-backdrop" onclick="closeAllMobileMenus()"></div>
 </body>
 </html>
