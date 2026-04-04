@@ -127,6 +127,9 @@ body.light-mode .t2-bar-right,
 body.light-mode .poll-tooltip,
 body.light-mode .map-tooltip {
     color: var(--text) !important;
+	background: var(--bg) !important;
+	backdrop-filter: blur(4px);
+    border: 1px solid var(--border);
 }
 
 /* --- GESTION DES PSEUDOS (Couleurs des partis conservées) --- */
@@ -1373,8 +1376,58 @@ textarea#post-text {
 @media (max-width: 768px) {
 
 .map-container {
-    height: 420px !important;
-}
+        height: auto !important; /* Enlève la hauteur fixe qui causait le trou en haut */
+        aspect-ratio: 1.15 / 1 !important; /* Force le même ratio que sur ordinateur */
+        padding: 0 !important;
+    }
+    
+    .map-container svg {
+        width: 100% !important;
+        height: 100% !important; /* Le dessin remplit son conteneur sans laisser de blanc */
+        object-fit: contain; /* S'assure que tout est visible (ex: la Corse) */
+    }
+
+    .map-card {
+        padding-bottom: 50px !important; /* Laisse de l'espace en bas pour ne pas écraser les DROM-COM */
+    }
+
+    /* ── TABLEAU DÉTAIL PARFAITEMENT RESPONSIVE ── */
+    .data-table-card {
+        padding: 12px 8px !important;
+        overflow-x: visible !important;
+    }
+    
+    table {
+        min-width: 100% !important; /* Écrase l'ancien min-width de 400px qui faisait déborder l'écran */
+        width: 100% !important;
+    }
+    
+    th {
+        font-size: 9px !important;
+        padding: 6px 2px !important;
+        letter-spacing: -0.02em !important; /* Resserre un peu le texte des en-têtes */
+    }
+    
+    td {
+        font-size: 11px !important;
+        padding: 8px 2px !important;
+    }
+    
+    .pct-bar-cell {
+        width: 50px !important; /* On réduit la taille de la barre de volume pour faire de la place aux chiffres */
+    }
+    
+    /* Réduction des boutons de tri pour que tout passe sur une seule ligne */
+    .sort-buttons {
+        gap: 4px !important;
+    }
+    
+    .sort-buttons .minimal-gif-btn3, 
+    #tableSortWrap .minimal-gif-btn3,
+    #selectTableYear {
+        font-size: 10px !important;
+        padding: 4px 6px !important;
+    }
 
 /* ── Menu GIF Mobile (Accroché au-dessus de la saisie) ── */
   .chat-input-area {
