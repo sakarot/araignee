@@ -8013,14 +8013,12 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
     return html;
 };
 
-// --- GESTION DU SWIPE TWITTER (GLISSEMENT FLUIDE ENTRE ONGLETS) ---
+// --- GESTION DU SWIPE TWITTER (V3 - Glissement fluide & Scroll des barres) ---
 (function initTwitterSwipe() {
     if (window.innerWidth > 768) return;
 
     // 1. Activer le CSS du Carousel
     document.body.classList.add('twitter-swipe-enabled');
-    
-    // Nettoie les anciennes classes qui cassaient le scroll
     document.body.classList.remove('mobile-show-sim', 'mobile-show-profile');
 
     // 2. Isoler le Profil du Simulateur
@@ -8032,20 +8030,17 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
     if (profileSection && mainContent && !profileWrapper) {
         profileWrapper = document.createElement('div');
         profileWrapper.id = 'profileWrapper';
-        
         const container = document.createElement('div');
         container.className = 'container';
-        
         container.appendChild(profileSection);
         profileWrapper.appendChild(container);
-        
         mainContent.parentNode.insertBefore(profileWrapper, mainContent.nextSibling);
     }
 
     const panels = [communitySidebar, mainContent, profileWrapper];
     let currentTabIndex = 0;
 
-    // 3. CLONAGE DE LA BARRE DU BAS (Désactive l'ancienne fonction "switchTab" qui remettait le scroll à zéro)
+    // 3. CLONAGE DE LA BARRE DU BAS
     let bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
         let newBottomNav = bottomNav.cloneNode(true);
@@ -8054,18 +8049,30 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
         const newNavButtons = newBottomNav.querySelectorAll('button');
         newNavButtons.forEach((btn, index) => {
             btn.addEventListener('click', (e) => {
-                e.preventDefault(); // Annule les comportements natifs
+                e.preventDefault();
                 animateToTab(index);
             });
         });
     }
 
-    // 4. Fonction pour animer les rubans et gérer l'UI (titres et boutons)
+    // ---------------------------------------------------------
+    // 4. PRÉPARATION DES BARRES POUR LE SCROLL (Haut & Bas)
+    // ---------------------------------------------------------
+    const activeBottomNav = document.querySelector('.bottom-nav');
+    const topTitle = document.getElementById('mobile-top-title');
+    // On cible le parent du titre (la barre du haut complète)
+    const activeTopBar = topTitle ? topTitle.closest('div, header') : document.querySelector('.mobile-top-bar');
+
+    // On ajoute une transition CSS fluide en JS pour s'assurer qu'elle y est
+    if (activeBottomNav) activeBottomNav.style.transition = 'transform 0.3s ease-in-out';
+    if (activeTopBar) activeTopBar.style.transition = 'transform 0.3s ease-in-out';
+
+    // 5. Fonction d'animation et de gestion d'interface
     function animateToTab(index) {
         currentTabIndex = index;
         const offset = -index * 100;
         
-        // Mouvement fluide du swipe
+        // Mouvement du swipe
         panels.forEach(p => {
             if (p) {
                 p.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
@@ -8073,42 +8080,45 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
             }
         });
         
-        // Mise à jour visuelle des boutons en bas (couleurs active)
+        // UI des boutons du bas
         const tabs = ['community', 'simulator', 'profile'];
         const navButtons = document.querySelectorAll('.bottom-nav button');
         navButtons.forEach(btn => btn.classList.remove('active'));
         const targetBtn = document.querySelector(`.bottom-nav button[data-tab="${tabs[index]}"]`);
         if (targetBtn) targetBtn.classList.add('active');
         
-        // Mise à jour du titre en haut
+        // Changement du titre
         const titles = ["L'Araignée", "Simulateur", "Mon Profil"];
-        const titleEl = document.getElementById('mobile-top-title');
-        if (titleEl) titleEl.innerText = titles[index];
+        if (topTitle) topTitle.innerText = titles[index];
         
-        // Redessiner la carte géographique si on est sur le simulateur
+        // Refresh de la carte
         if (index === 1 && typeof renderMaps === 'function') {
             setTimeout(renderMaps, 300);
         }
+
+        // SCROLL INTELLIGENT AU CHANGEMENT D'ONGLET :
+        // Si le nouvel onglet est tout en haut, on force les barres à réapparaître.
+        // Sinon, on maintient l'état dans lequel elles étaient (cachées ou visibles).
+        if (panels[index] && panels[index].scrollTop <= 50) {
+            if (activeBottomNav) activeBottomNav.style.transform = 'translateY(0)';
+            if (activeTopBar) activeTopBar.style.transform = 'translateY(0)';
+        }
     }
 
-    // Initialisation
     animateToTab(0);
 
-    // 5. Mécanique de glissement natif (Touch)
+    // 6. Mécanique de glissement natif (Touch)
     let startX = 0, startY = 0, currentX = 0;
     let isSwiping = false, isHorizontalSwipe = null;
     const swipeThreshold = window.innerWidth * 0.15;
 
     document.addEventListener('touchstart', (e) => {
         if (window.innerWidth > 768) return;
-        
-        // Bloquer le swipe sur les éléments interactifs
         if (e.target.closest('.user-dropdown') || e.target.closest('.friends-dropdown') || 
             e.target.closest('input[type=range]') || document.body.classList.contains('mobile-composer-open') || 
             e.target.closest('.maps-grid') || e.target.closest('.chart-card') || 
             e.target.closest('.data-table-card')) return;
 
-        // Autoriser le scroll horizontal des tableaux
         let el = e.target;
         while (el && el !== document.body) {
             if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
@@ -8140,7 +8150,6 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
 
         if (!isHorizontalSwipe) return;
 
-        // Effet résistance aux extrémités
         if ((currentTabIndex === 0 && deltaX > 0) || (currentTabIndex === panels.length - 1 && deltaX < 0)) {
             const resistDelta = deltaX * 0.25;
             panels.forEach(p => {
@@ -8152,7 +8161,6 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
             return;
         }
 
-        // Glissement pur calqué sur le doigt
         panels.forEach(p => {
             if (p) {
                 p.style.transition = 'none';
@@ -8167,7 +8175,6 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
 
         const deltaX = currentX - startX;
         
-        // Si le swipe est assez grand, on passe à l'onglet suivant/précédent
         if (Math.abs(deltaX) > swipeThreshold) {
             if (deltaX < 0 && currentTabIndex < panels.length - 1) {
                 currentTabIndex++; 
@@ -8178,7 +8185,36 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
         
         animateToTab(currentTabIndex);
     });
+
+    // ---------------------------------------------------------
+    // 7. GESTION DU MASQUAGE DES BARRES AU SCROLL 
+    // ---------------------------------------------------------
+    let lastScrollY = [0, 0, 0]; // On garde en mémoire le scroll des 3 onglets
+
+    panels.forEach((panel, index) => {
+        if (!panel) return;
+        panel.addEventListener('scroll', () => {
+            // Seul l'onglet actuellement affiché à l'écran a le droit de masquer/afficher les barres
+            if (currentTabIndex !== index) return; 
+
+            let currentY = panel.scrollTop;
+
+            // Si on scrolle vers le bas (et qu'on a passé les 50 premiers pixels)
+            if (currentY > lastScrollY[index] && currentY > 50) {
+                if (activeBottomNav) activeBottomNav.style.transform = 'translateY(150%)';
+                if (activeTopBar) activeTopBar.style.transform = 'translateY(-150%)';
+            } 
+            // Si on scrolle vers le haut
+            else if (currentY < lastScrollY[index]) {
+                if (activeBottomNav) activeBottomNav.style.transform = 'translateY(0)';
+                if (activeTopBar) activeTopBar.style.transform = 'translateY(0)';
+            }
+            
+            lastScrollY[index] = currentY <= 0 ? 0 : currentY; // Empêche les bugs de rebond sur iOS
+        }, { passive: true });
+    });
 })();
+
 
 </script>
 <div id="mobile-menu-backdrop" onclick="closeAllMobileMenus()"></div>
