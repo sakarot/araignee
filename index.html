@@ -7893,108 +7893,225 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
     let currentX = 0;
     let isSwiping = false;
     let isHorizontalSwipe = null;
-    const swipeThreshold = 80; // Distance en pixels pour valider le changement
+    const swipeThreshold = 60;
     const tabs = ['community', 'simulator', 'profile'];
     let currentTabIndex = 0;
 
-    function getActiveContainer() {
-        if (document.body.classList.contains('mobile-show-profile')) return document.getElementById('mobile-profile-section');
-        if (document.body.classList.contains('mobile-show-sim')) return document.getElementById('mainContent');
-        return document.getElementById('communitySidebar');
+    // Crée un conteneur "scène" qui contiendra les 3 panneaux côte à côte
+    function getSliderScene() {
+        let scene = document.getElementById('swipe-scene');
+        if (!scene) {
+            scene = document.createElement('div');
+            scene.id = 'swipe-scene';
+            scene.style.cssText = `
+                position: fixed;
+                top: 0; left: 0;
+                width: 300vw;
+                height: 100dvh;
+                display: flex;
+                will-change: transform;
+                transition: none;
+                z-index: 5;
+                pointer-events: none;
+            `;
+            document.body.appendChild(scene);
+        }
+        return scene;
     }
+
+    function getPanelForTab(tabName) {
+        if (tabName === 'community') return document.getElementById('communitySidebar');
+        if (tabName === 'simulator') return document.getElementById('mainContent');
+        if (tabName === 'profile') return document.getElementById('mobile-profile-section')?.closest('#mainContent') || document.getElementById('mainContent');
+        return null;
+    }
+
+    function getActiveTabIndex() {
+        if (document.body.classList.contains('mobile-show-profile')) return 2;
+        if (document.body.classList.contains('mobile-show-sim')) return 1;
+        return 0;
+    }
+
+    function activateTab(index) {
+        const btn = document.querySelector(`.bottom-nav button[data-tab="${tabs[index]}"]`);
+        if (btn) btn.click();
+    }
+
+    // Snapshot rapide : prend une "photo" DOM d'un panneau pour la transition
+    function buildSnapshot(tabIndex) {
+        const snapId = `swipe-snap-${tabIndex}`;
+        let snap = document.getElementById(snapId);
+        if (snap) snap.remove();
+
+        snap = document.createElement('div');
+        snap.id = snapId;
+        snap.style.cssText = `
+            width: 100vw;
+            height: 100dvh;
+            flex-shrink: 0;
+            overflow: hidden;
+            position: relative;
+            background: var(--bg);
+        `;
+
+        // Contenu simulé selon l'onglet (léger, juste pour la preview)
+        const labels = ['💬 Communauté', '📊 Simulateur', '👤 Profil'];
+        const colors = ['var(--accent)', 'var(--text)', 'var(--text-dim)'];
+        snap.innerHTML = `<div style="
+            width:100%; height:100%;
+            display:flex; align-items:center; justify-content:center;
+            font-size:20px; font-weight:bold;
+            color: ${colors[tabIndex]};
+            font-family: 'DM Serif Display', serif;
+            letter-spacing: -0.02em;
+            opacity: 0.5;
+        ">${labels[tabIndex]}</div>`;
+
+        return snap;
+    }
+
+    let swipeScene = null;
+    let sceneOffset = 0;
 
     document.addEventListener('touchstart', (e) => {
         if (window.innerWidth > 768) return;
-        
-        // Bloque le swipe si on est dans un menu, sur un slider, sur une carte géographique ou si on crée un post
-        if (e.target.closest('.user-dropdown') || e.target.closest('.friends-dropdown') || e.target.closest('input[type=range]') || document.body.classList.contains('mobile-composer-open') || e.target.closest('.maps-grid') || e.target.closest('.chart-card')) return;
+        if (e.target.closest('.user-dropdown') ||
+            e.target.closest('.friends-dropdown') ||
+            e.target.closest('input[type=range]') ||
+            document.body.classList.contains('mobile-composer-open') ||
+            e.target.closest('.maps-grid') ||
+            e.target.closest('.chart-card')) return;
 
-        // Bloque le swipe si l'élément touché possède son propre scroll horizontal (comme le tableau de données)
+        // Bloque si scroll horizontal natif
         let el = e.target;
         while (el && el !== document.body) {
-            if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
+            if (el.scrollWidth > el.clientWidth + 5 && !el.classList.contains('page-wrapper')) return;
             el = el.parentElement;
         }
 
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         isSwiping = true;
-        isHorizontalSwipe = null; // On ne sait pas encore l'axe principal du geste
-        
-        // Détection de l'onglet de départ
-        if (document.body.classList.contains('mobile-show-profile')) currentTabIndex = 2;
-        else if (document.body.classList.contains('mobile-show-sim')) currentTabIndex = 1;
-        else currentTabIndex = 0;
+        isHorizontalSwipe = null;
+        currentTabIndex = getActiveTabIndex();
+        sceneOffset = currentTabIndex * -100; // en vw
+
     }, { passive: true });
 
     document.addEventListener('touchmove', (e) => {
         if (!isSwiping) return;
-        
-        currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        const deltaX = currentX - startX;
-        const deltaY = currentY - startY;
 
-        // Calcule si l'utilisateur glisse horizontalement ou verticalement
+        const deltaX = e.touches[0].clientX - startX;
+        const deltaY = e.touches[0].clientY - startY;
+
         if (isHorizontalSwipe === null) {
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (Math.abs(deltaX) > Math.abs(deltaY) + 5) {
                 isHorizontalSwipe = true;
-            } else {
+            } else if (Math.abs(deltaY) > Math.abs(deltaX) + 5) {
                 isHorizontalSwipe = false;
-                isSwiping = false; // Abandon, on laisse le navigateur scroller verticalement
+                isSwiping = false;
                 return;
+            } else {
+                return; // Pas encore décidé
             }
         }
 
         if (!isHorizontalSwipe) return;
 
-        // Bloque l'étirement excessif aux extrémités (pas d'onglet avant le premier ni après le dernier)
-        if ((currentTabIndex === 0 && deltaX > 0) || (currentTabIndex === tabs.length - 1 && deltaX < 0)) return;
+        currentX = e.touches[0].clientX;
+        const swipeDeltaX = currentX - startX;
 
-        // Mouvement de translation progressif sous le doigt
-        const container = getActiveContainer();
-        if (container) {
-            container.style.transition = 'none';
-            container.style.transform = `translateX(${deltaX}px)`;
-            container.style.opacity = 1 - (Math.abs(deltaX) / (window.innerWidth * 1.2)); // S'efface légèrement
+        // Bloque aux extrémités avec résistance
+        if ((currentTabIndex === 0 && swipeDeltaX > 0) ||
+            (currentTabIndex === tabs.length - 1 && swipeDeltaX < 0)) {
+            // Résistance élastique
+            const resist = swipeDeltaX * 0.15;
+            if (swipeScene) {
+                swipeScene.style.transition = 'none';
+                swipeScene.style.transform = `translateX(calc(${sceneOffset}vw + ${resist}px))`;
+            }
+            return;
         }
+
+        // Initialise la scène au premier mouvement horizontal
+        if (!swipeScene) {
+            swipeScene = getSliderScene();
+            swipeScene.innerHTML = '';
+            swipeScene.style.pointerEvents = 'all';
+
+            // Construit les 3 snapshots
+            tabs.forEach((tab, i) => {
+                const snap = buildSnapshot(i);
+                swipeScene.appendChild(snap);
+            });
+
+            // Clone le vrai contenu de l'onglet actif par-dessus
+            const realSnap = document.getElementById(`swipe-snap-${currentTabIndex}`);
+            if (realSnap) realSnap.style.opacity = '1';
+
+            // Position initiale = onglet actif
+            swipeScene.style.transform = `translateX(${sceneOffset}vw)`;
+            document.body.style.overflow = 'hidden';
+        }
+
+        swipeScene.style.transition = 'none';
+        const translateX = sceneOffset + (swipeDeltaX / window.innerWidth * 100);
+        swipeScene.style.transform = `translateX(${translateX}vw)`;
+
     }, { passive: true });
 
     document.addEventListener('touchend', (e) => {
-        if (!isSwiping || !isHorizontalSwipe) return;
+        if (!isSwiping) return;
         isSwiping = false;
-        
-        const deltaX = currentX - startX;
-        const container = getActiveContainer();
+        isHorizontalSwipe = false;
 
-        if (container) {
-            container.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // On remet l'animation pour finir la glissade
-            
-            if (Math.abs(deltaX) > swipeThreshold) {
-                // Changement d'onglet validé
-                if (deltaX < 0 && currentTabIndex < tabs.length - 1) {
-                    container.style.transform = `translateX(-100vw)`; // On le chasse vers la gauche
-                    container.style.opacity = 0;
-                    setTimeout(() => {
-                        container.style.transform = ''; container.style.opacity = '';
-                        document.querySelector(`.bottom-nav button[data-tab="${tabs[currentTabIndex + 1]}"]`).click();
-                    }, 250);
-                } else if (deltaX > 0 && currentTabIndex > 0) {
-                    container.style.transform = `translateX(100vw)`; // On le chasse vers la droite
-                    container.style.opacity = 0;
-                    setTimeout(() => {
-                        container.style.transform = ''; container.style.opacity = '';
-                        document.querySelector(`.bottom-nav button[data-tab="${tabs[currentTabIndex - 1]}"]`).click();
-                    }, 250);
-                } else {
-                    container.style.transform = 'translateX(0)'; container.style.opacity = 1;
-                }
-            } else {
-                // Geste trop court -> On rebondit à la position initiale
-                container.style.transform = 'translateX(0)'; container.style.opacity = 1;
-            }
+        const deltaX = currentX - startX;
+
+        if (!swipeScene) return;
+
+        const shouldSwitch = Math.abs(deltaX) > swipeThreshold;
+        let targetIndex = currentTabIndex;
+
+        if (shouldSwitch) {
+            if (deltaX < 0 && currentTabIndex < tabs.length - 1) targetIndex = currentTabIndex + 1;
+            else if (deltaX > 0 && currentTabIndex > 0) targetIndex = currentTabIndex - 1;
         }
-    });
+
+        const targetOffset = targetIndex * -100;
+
+        // Animation de finalisation fluide
+        swipeScene.style.transition = 'transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        swipeScene.style.transform = `translateX(${targetOffset}vw)`;
+
+        setTimeout(() => {
+            // Nettoyage
+            if (swipeScene) {
+                swipeScene.remove();
+                swipeScene = null;
+            }
+            document.body.style.overflow = '';
+
+            // Changement d'onglet réel si nécessaire
+            if (targetIndex !== currentTabIndex) {
+                activateTab(targetIndex);
+            }
+        }, 320);
+
+    }, { passive: true });
+
+    // Annulation si le toucher est interrompu
+    document.addEventListener('touchcancel', () => {
+        isSwiping = false;
+        if (swipeScene) {
+            swipeScene.style.transition = 'transform 0.25s ease';
+            swipeScene.style.transform = `translateX(${sceneOffset}vw)`;
+            setTimeout(() => {
+                if (swipeScene) { swipeScene.remove(); swipeScene = null; }
+                document.body.style.overflow = '';
+            }, 250);
+        }
+    }, { passive: true });
+
 })();
 
 </script>
