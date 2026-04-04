@@ -558,7 +558,7 @@ body.light-mode .sticky-chat-footer {
 }
   .post-time { color: var(--text-dim); font-family: 'Space Mono', monospace; font-size: 7px; }
   .post-body { font-size: 13px; margin-bottom: 12px; word-break: break-word; line-height: 1.4; color: #ccc; }
-  .post-img { max-width: 100%; border-radius: 6px; margin-top: 8px; max-height: 200px; object-fit: cover; }
+  .post-img { max-width: 100%; border-radius: 6px; margin-top: 8px; max-height: 200px; object-fit: contain; }
   .post-actions { display: flex; gap: 16px; border-top: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); padding-top: 8px; }
   .action-btn { background: transparent; border: none; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 11px; transition: all 0.2s; font-family: 'Space Mono', monospace; }
   .action-btn:hover { color: var(--text); }
@@ -1381,14 +1381,18 @@ textarea#post-text {
       position: relative !important; /* Indispensable pour retenir le menu GIF */
   }
   
-.gif-dropdown {
-      position: fixed !important; /* Fixed est plus stable sur mobile */
-      bottom: 70px !important;    /* Ajusté pour être juste au-dessus du bouton */
+.chat-input-area {
+      position: relative !important;
+  }
+  
+  .gif-dropdown {
+      position: fixed !important;
+      bottom: 70px !important;
       left: 10px !important;
       right: 10px !important;
       width: auto !important;
       max-width: none !important;
-      z-index: 9999 !important;   /* Doit être au-dessus du composer */
+      z-index: 9999 !important; 
       background: var(--surface) !important;
       border: 1px solid var(--accent) !important;
       border-radius: 15px !important;
@@ -1403,11 +1407,22 @@ textarea#post-text {
 
   .gif-grid {
       display: grid !important;
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 8px !important;
-      padding: 10px !important;
+      grid-template-columns: repeat(3, 1fr) !important; /* 3 colonnes pour une vraie mosaïque compacte */
+      gap: 4px !important; /* Espacement très fin entre les carrés */
+      padding: 6px !important;
       overflow-y: auto !important;
-      max-height: 40vh !important;
+      max-height: 45vh !important;
+      align-items: start !important; /* Annule le centrage précédent */
+  }
+
+  .gif-grid img {
+      width: 100% !important;
+      height: auto !important;
+      max-height: none !important; /* Retire l'ancienne limite */
+      aspect-ratio: 1 / 1 !important; /* MAGIE : Force chaque image à être un carré parfait 1:1 */
+      object-fit: cover !important; /* Remplit tout le carré sans déformer l'image */
+      background: color-mix(in srgb, var(--surface2) 50%, transparent) !important;
+      border-radius: 6px !important;
   }
 
     /* Cache l'en-tête "Communauté" originel */
@@ -4390,43 +4405,50 @@ function debounceGifSearch(targetId) {
   }, 400);
 }
 
-function searchGifs(query, targetId) {
-  const resultsDiv = document.getElementById(`gif-results-${targetId}`);
-  resultsDiv.innerHTML = '<div style="grid-column: span 2; text-align:center; color:var(--text-dim); font-size:9px;">...</div>';
-  let url = `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=10&locale=fr_FR&tiny_gif_formats=tinygif`;
-  if (query === 'trending') url = `https://g.tenor.com/v1/trending?key=LIVDSRZULELA&limit=10&locale=fr_FR&tiny_gif_formats=tinygif`;
-  fetch(url).then(r => r.json()).then(data => {
-      resultsDiv.innerHTML = '';
-      if (!data.results || data.results.length === 0) {
-        resultsDiv.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#e07080; font-size:10px;">Aucun résultat</div>';
-        return;
-      }
-      data.results.forEach(gif => {
-        const img = document.createElement('img');
-        img.src = gif.media[0].tinygif.url; 
-        img.onclick = () => selectGif(gif.media[0].gif.url, targetId);
-        resultsDiv.appendChild(img);
-      });
-  }).catch(e => { resultsDiv.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#ff4444; font-size:10px;">Erreur</div>'; });
-}
+window.searchGifs = function(query, targetId) {
+    const resultsDiv = document.getElementById(`gif-results-${targetId}`);
+    resultsDiv.innerHTML = '<div style="grid-column: span 2; text-align:center; color:var(--text-dim); font-size:11px;">Chargement...</div>';
+    
+    // On passe la limite à 30 au lieu de 10 dans l'URL
+    let url = `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=30&locale=fr_FR&tiny_gif_formats=tinygif`; 
+    if (query === 'trending') url = `https://g.tenor.com/v1/trending?key=LIVDSRZULELA&limit=30&locale=fr_FR&tiny_gif_formats=tinygif`;
+    
+    fetch(url).then(r => r.json()).then(data => { 
+        resultsDiv.innerHTML = ''; 
+        if (!data.results || data.results.length === 0) { 
+            resultsDiv.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#e07080; font-size:10px;">Aucun résultat</div>'; 
+            return; 
+        } 
+        data.results.forEach(gif => { 
+            const img = document.createElement('img'); 
+            img.src = gif.media[0].tinygif.url; 
+            img.onclick = () => selectGif(gif.media[0].gif.url, targetId); 
+            resultsDiv.appendChild(img); 
+        }); 
+    }).catch(e => { 
+        resultsDiv.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#ff4444; font-size:10px;">Erreur</div>'; 
+    });
+};
 
 window.selectGif = function(url, targetId) {
     selectedGifs[targetId] = url;
     const previewWrap = document.getElementById(targetId + '-gif-preview-wrap');
-    
     if (previewWrap) {
-        previewWrap.innerHTML = `<img id="${targetId}-gif-preview" src="${url}" style="max-height: 120px; border-radius: 8px;">
-                                 <button class="gif-preview-close" onclick="removeSelectedGif('${targetId}')">✖</button>`;
+        previewWrap.innerHTML = `<img id="${targetId}-gif-preview" src="${url}" style="max-height: 120px; border-radius: 8px;"> <button class="gif-preview-close" onclick="removeSelectedGif('${targetId}')">✖</button>`;
         previewWrap.style.display = 'flex';
     }
     
-    // --- 1. FERMETURE AUTOMATIQUE DU MENU GIF ---
-    const menu = document.getElementById(targetId + '-gif-menu');
-    if(menu) menu.classList.remove('show');
+    // --- 1. DÉSACTIVER LE BOUTON GIF ---
+    const btn = document.getElementById(`gif-btn-${targetId}`);
+    if (btn) btn.classList.remove('active');
+
+    // --- 2. FERMETURE AUTOMATIQUE DU MENU GIF ---
+    const menu = document.getElementById(`gif-dropdown-${targetId}`);
+    if (menu) menu.classList.remove('show');
     
-    // --- 2. SÉCURITÉ : Force la fermeture de tout menu GIF resté ouvert ---
+    // --- 3. SÉCURITÉ : Force la fermeture de tout menu GIF resté ouvert ---
     document.querySelectorAll('.gif-dropdown.show').forEach(el => el.classList.remove('show'));
-    
+
     // Si l'utilisateur avait sélectionné des photos, on les annule
     if (targetId === 'post' && typeof removeSelectedMedia === 'function') {
         window.selectedMediaDataUrls = [];
@@ -6781,32 +6803,30 @@ window.removeSelectedAudio = function() {
     }
 };
 
-window.buildCustomAudioPlayerHTML = function(url, id) {
+window.buildCustomAudioPlayerHTML = function(url, id, forcedColor = null) {
     setTimeout(async () => {
-        let color = 'var(--accent)'; 
-        try {
-            let postObj = window.allPosts.find(p => p.id === id);
-            if(postObj && postObj.userColor) color = postObj.userColor;
-            else {
-                for(let pid in window.postComments) {
-                    let c = window.postComments[pid].find(x => x.id === id);
-                    if(c && c.userColor) { color = c.userColor; break; }
+        let color = forcedColor || 'var(--accent)';
+        if (!forcedColor) {
+            try {
+                let postObj = window.allPosts.find(p => p.id === id);
+                if(postObj && postObj.userColor) color = postObj.userColor;
+                else {
+                    for(let pid in window.postComments) {
+                        let c = window.postComments[pid].find(x => x.id === id);
+                        if(c && c.userColor) { color = c.userColor; break; }
+                    }
                 }
-            }
-        } catch(e) {}
+            } catch(e) {}
+        }
         renderStaticWaveform(url, 'canvas-' + id, color);
     }, 50);
-
     return `
     <div style="display:flex; align-items: center; gap: 8px; background: var(--surface2); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 6px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;" id="audio-post-${id}" data-audiourl="${url}">
         <button type="button" class="minimal-gif-btn" id="playbtn-${id}" style="padding: 4px; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" onclick="event.stopPropagation(); window.togglePostAudio('${id}')">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </button>
-        
         <button type="button" class="minimal-gif-btn" id="speedbtn-${id}" data-speed="1" onclick="event.stopPropagation(); window.cycleAudioSpeed('${id}')" style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: bold; padding: 2px 4px; border-radius: 4px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">1x</button>
-        
         <span id="timer-${id}" style="font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text); min-width: 35px; flex-shrink: 0;">00:00</span>
-        
         <div style="flex: 1; min-width: 0; position: relative; cursor: pointer; display: flex; align-items: center;" onclick="event.stopPropagation(); window.seekAudio(event, '${id}')">
             <canvas id="canvas-${id}" width="400" height="60" style="width: 100%; height: 30px; display: block;"></canvas>
             <div id="progress-${id}" style="position: absolute; top: 0; left: 0; bottom: 0; width: 0%; background: var(--text); opacity: 0.15; pointer-events: none; border-radius: 2px;"></div>
@@ -7272,73 +7292,434 @@ window.switchProfileTab = function(tab) {
     loadUserProfileContent(tab);
 };
 
-window.loadUserProfileContent = function(tab) {
+// --- 1. FONCTIONS DE CHARGEMENT PRINCIPALES ---
+window.loadUserProfileContent = async function(tab) {
     if (!currentUser) return;
     
     const postsContainer = document.getElementById('profile-posts-tab');
     const repliesContainer = document.getElementById('profile-replies-tab');
     
+    // Initialisation du moteur de commentaires spécifique au profil
+    window.profileOpenThreads = {};
+    window.profileFocusedCommentId = {};
+    window.profileCommentsCache = {};
+
     if (tab === 'posts') {
-        postsContainer.innerHTML = '<div style="font-size:11px; color:var(--text-dim); text-align:center;">Chargement de vos posts...</div>';
-        // Récupère les posts de l'utilisateur
-        db.collection("posts").where("uid", "==", currentUser.uid)
-          .orderBy("timestamp", "desc").limit(20).get().then(snap => {
+        postsContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim); font-size:12px;">Chargement de vos publications...</div>';
+        try {
+            const snap = await db.collection("posts").where("uid", "==", currentUser.uid).orderBy("timestamp", "desc").limit(15).get();
             if (snap.empty) {
-                postsContainer.innerHTML = '<div style="font-size:11px; color:var(--text-dim); text-align:center;">Vous n\'avez publié aucun post.</div>';
+                postsContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim); font-size:12px;">Vous n\'avez publié aucun post.</div>';
                 return;
             }
+            
             postsContainer.innerHTML = '';
             snap.forEach(doc => {
                 const post = { id: doc.id, ...doc.data() };
-                postsContainer.appendChild(createMiniProfileCard(post, 'Post'));
+                postsContainer.appendChild(createProfileFeedCard(post)); 
             });
-        }).catch(err => {
-            console.error(err);
-            postsContainer.innerHTML = '<div style="font-size:11px; color:var(--text-dim); text-align:center;">Une erreur est survenue ou un index Firestore est requis.</div>';
-        });
+        } catch (err) { console.error(err); postsContainer.innerHTML = '<div style="color:red; font-size:11px;">Erreur de chargement.</div>'; }
+        
     } else {
-        repliesContainer.innerHTML = '<div style="font-size:11px; color:var(--text-dim); text-align:center;">Chargement de vos réponses...</div>';
-        // Récupère les réponses de l'utilisateur avec un collectionGroup
-        db.collectionGroup("comments").where("uid", "==", currentUser.uid)
-          .orderBy("timestamp", "desc").limit(20).get().then(snap => {
+        repliesContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim); font-size:12px;">Recherche de l\'historique de vos réponses...</div>';
+        try {
+            const snap = await db.collectionGroup("comments").where("uid", "==", currentUser.uid).orderBy("timestamp", "desc").limit(15).get();
             if (snap.empty) {
-                repliesContainer.innerHTML = '<div style="font-size:11px; color:var(--text-dim); text-align:center;">Vous n\'avez publié aucune réponse.</div>';
+                repliesContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim); font-size:12px;">Vous n\'avez publié aucune réponse.</div>';
                 return;
             }
+            
+            let myReplies = snap.docs.map(d => ({ id: d.id, ...d.data(), ref: d.ref }));
             repliesContainer.innerHTML = '';
-            snap.forEach(doc => {
-                const comment = { id: doc.id, ...doc.data() };
-                repliesContainer.appendChild(createMiniProfileCard(comment, 'Réponse'));
+            
+            myReplies.forEach(reply => {
+                let postId = reply.postId || (reply.ref.parent && reply.ref.parent.parent ? reply.ref.parent.parent.id : null);
+                reply.computedPostId = postId;
+                repliesContainer.appendChild(createProfileReplyCard(reply));
             });
-        }).catch(err => {
-             console.error("Erreur collectionGroup:", err);
-             repliesContainer.innerHTML = '<div style="font-size:11px; color:var(--text-dim); text-align:center;">Erreur : Index Firestore "collectionGroup" manquant. Veuillez cliquer sur le lien d\'erreur dans la console F12.</div>';
-        });
+            
+        } catch (err) { console.error(err); repliesContainer.innerHTML = '<div style="color:red; font-size:11px;">Erreur de chargement.</div>'; }
     }
 };
 
-window.createMiniProfileCard = function(item, type) {
+window.createProfileFeedCard = function(post) {
     const el = document.createElement('div');
-    el.style.background = 'color-mix(in srgb, var(--text-dim) 5%, transparent)';
-    el.style.border = '1px solid var(--border)';
-    el.style.borderRadius = '8px';
-    el.style.padding = '10px';
+    el.className = 'post-card';
+    el.style.marginBottom = '16px';
     
-    let textHtml = item.text ? `<div style="margin-top: 6px; font-size: 13px; color: var(--text);">${formatText(item.text)}</div>` : '';
-    let mediaHtml = '';
-    if (item.gifUrl && !item.isAudio && !item.isVideo) {
-        mediaHtml = `<img src="${item.gifUrl}" style="max-height: 80px; border-radius: 4px; margin-top: 6px;">`;
+    let imgHtml = '';
+    if (post.mediaUrls && post.mediaUrls.length > 0) {
+        let gridHtml = post.mediaUrls.map(media => {
+            if (media.isVideo) return `<video src="${media.url}" class="post-img" controls style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; background:#000; margin:0;"></video>`;
+            else return `<img src="${media.url}" class="post-img" style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; margin:0;" onerror="this.style.display='none'">`;
+        }).join('');
+        let cols = post.mediaUrls.length === 1 ? '1fr' : '1fr 1fr';
+        imgHtml = `<div style="display: grid; grid-template-columns: ${cols}; gap: 6px; margin-top: 8px;">${gridHtml}</div>`;
+    } else if (post.gifUrl) {
+        if (post.isVideo) {
+            imgHtml = `<video src="${post.gifUrl}" class="post-img" controls style="max-height: 280px; border-radius: 8px; margin-top: 8px; width: 100%; object-fit: cover; background: #000;"></video>`;
+        } else if (post.isAudio) {
+            imgHtml = typeof buildCustomAudioPlayerHTML === 'function' ? buildCustomAudioPlayerHTML(post.gifUrl, post.id, post.userColor) : '';
+        } else {
+            imgHtml = `<img src="${post.gifUrl}" class="post-img" onerror="this.style.display='none'" alt="Image/GIF">`;
+        }
     }
     
+    let pollHtml = typeof generatePollHtml === 'function' ? generatePollHtml(post, post.id) : '';
+
     el.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px dashed color-mix(in srgb, var(--text-dim) 30%, transparent); padding-bottom: 6px;">
-            <span style="font-size:11px; font-weight:bold; color:var(--accent); text-transform:uppercase;">${type}</span>
-            <span style="font-size:10px; color:var(--text-dim);">${getRelativeTime(item.timestamp)}</span>
+        <div class="post-header">
+            <span class="post-pseudo ${post.partyClass || ''}" style="${post.userColor ? `color:${post.userColor}` : ''}">${post.pseudo || 'Anonyme'}</span>
+            <span class="post-time">${typeof getRelativeTime === 'function' ? getRelativeTime(post.timestamp) : ''}</span>
         </div>
-        ${textHtml}
-        ${mediaHtml}
+        <div class="post-body">${typeof formatText === 'function' ? formatText(post.text) : (post.text || '')}</div>
+        ${imgHtml}
+        ${pollHtml}
+        
+        <div class="post-actions" style="margin-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--border) 50%, transparent); padding-top: 8px;">
+            <button class="action-btn" onclick="toggleProfilePostReplies('${post.id}')">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2c5.523 0 10 4.029 10 9s-4.477 9-10 9c-1.34 0-2.618-.226-3.784-.633L3 21l1.558-4.524C3.208 14.938 2 13.048 2 11c0-4.971 4.477-9 10-9z"/></svg>
+                Voir la discussion
+            </button>
+        </div>
+        <div id="profile-comments-container-${post.id}" style="display: none; flex-direction: column; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+            <div id="profile-comments-list-${post.id}"></div>
+        </div>
     `;
     return el;
+};
+
+window.createProfileReplyCard = function(reply) {
+    const postId = reply.computedPostId;
+    if (!postId) return document.createElement('div');
+    
+    const el = document.createElement('div');
+    el.className = 'post-card';
+    el.style.marginBottom = '16px';
+    
+    let imgHtml = '';
+    if (reply.mediaUrls && reply.mediaUrls.length > 0) {
+        let gridHtml = reply.mediaUrls.map(media => {
+            if (media.isVideo) return `<video src="${media.url}" class="post-img" controls style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; background:#000; margin:0;"></video>`;
+            else return `<img src="${media.url}" class="post-img" style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; margin:0;" onerror="this.style.display='none'">`;
+        }).join('');
+        let cols = reply.mediaUrls.length === 1 ? '1fr' : '1fr 1fr';
+        imgHtml = `<div style="display: grid; grid-template-columns: ${cols}; gap: 6px; margin-top: 8px;">${gridHtml}</div>`;
+    } else if (reply.gifUrl) {
+        if (reply.isVideo) {
+            imgHtml = `<video src="${reply.gifUrl}" class="post-img" controls style="max-height: 280px; border-radius: 8px; margin-top: 8px; width: 100%; object-fit: cover; background: #000;"></video>`;
+        } else if (reply.isAudio) {
+            imgHtml = typeof buildCustomAudioPlayerHTML === 'function' ? buildCustomAudioPlayerHTML(reply.gifUrl, reply.id, reply.userColor) : '';
+        } else {
+            imgHtml = `<img src="${reply.gifUrl}" class="post-img" onerror="this.style.display='none'" alt="Image/GIF">`;
+        }
+    }
+    
+    let pollHtml = typeof generatePollHtml === 'function' ? generatePollHtml(reply, postId, reply.id) : '';
+
+    el.innerHTML = `
+        <div style="font-size: 11px; color: var(--accent); margin-bottom: 8px; font-weight: bold;">↳ Votre réponse</div>
+        <div class="post-header">
+            <span class="post-pseudo ${reply.partyClass || ''}" style="${reply.userColor ? `color:${reply.userColor}` : ''}">${reply.pseudo || 'Anonyme'}</span>
+            <span class="post-time">${typeof getRelativeTime === 'function' ? getRelativeTime(reply.timestamp) : ''}</span>
+        </div>
+        <div class="post-body" style="margin-bottom: 6px;">${typeof formatText === 'function' ? formatText(reply.text) : (reply.text || '')}</div>
+        ${imgHtml}
+        ${pollHtml}
+        
+        <div id="profile-reply-context-${reply.id}" style="margin-top: 12px; border-top: 1px dashed color-mix(in srgb, var(--border) 50%, transparent); padding-top: 8px;">
+            <button class="minimal-gif-btn" style="color: var(--text);" onclick="loadReplyContext('${postId}', '${reply.id}')">Afficher la discussion complète</button>
+        </div>
+    `;
+    return el;
+};
+
+// --- 3. MOTEUR INTERACTIF (Ouverture des vues) ---
+window.toggleProfilePostReplies = function(postId) {
+    const container = document.getElementById(`profile-comments-container-${postId}`);
+    const cacheKey = `post-${postId}`;
+    
+    if (container.style.display === 'none') {
+        container.style.display = 'flex';
+        document.getElementById(`profile-comments-list-${postId}`).innerHTML = '<div style="font-size:11px; color:var(--text-dim); text-align:center;">Chargement...</div>';
+        
+        db.collection("posts").doc(postId).collection("comments").orderBy("timestamp", "asc").get().then(snap => {
+            let allComments = [];
+            snap.forEach(doc => allComments.push({id: doc.id, postId: postId, ...doc.data()}));
+            window.profileCommentsCache[cacheKey] = allComments;
+            renderProfileComments(cacheKey, postId); 
+        }).catch(err => {
+            document.getElementById(`profile-comments-list-${postId}`).innerHTML = '<div style="color:red; font-size:11px;">Erreur de chargement.</div>';
+        });
+    } else {
+        container.style.display = 'none';
+        window.profileFocusedCommentId[cacheKey] = null;
+        if(window.profileCommentsCache[cacheKey]) {
+            window.profileCommentsCache[cacheKey].forEach(c => window.profileOpenThreads[cacheKey + c.id] = false);
+        }
+    }
+};
+
+window.loadReplyContext = function(postId, replyId) {
+    const container = document.getElementById(`profile-reply-context-${replyId}`);
+    container.innerHTML = '<div style="font-size:11px; color:var(--text-dim); text-align:center;">Chargement du fil...</div>';
+    
+    const cacheKey = `reply-${replyId}`;
+    
+    db.collection("posts").doc(postId).get().then(postDoc => {
+        if (!postDoc.exists) {
+            container.innerHTML = '<div style="color:red; font-size:11px;">Post original supprimé.</div>';
+            return;
+        }
+        
+        const post = { id: postDoc.id, ...postDoc.data() };
+        
+        let imgHtml = '';
+        if (post.mediaUrls && post.mediaUrls.length > 0) {
+            let gridHtml = post.mediaUrls.map(media => {
+                if (media.isVideo) return `<video src="${media.url}" class="post-img" controls style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; background:#000; margin:0;"></video>`;
+                else return `<img src="${media.url}" class="post-img" style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; margin:0;" onerror="this.style.display='none'">`;
+            }).join('');
+            let cols = post.mediaUrls.length === 1 ? '1fr' : '1fr 1fr';
+            imgHtml = `<div style="display: grid; grid-template-columns: ${cols}; gap: 6px; margin-top: 8px;">${gridHtml}</div>`;
+        } else if (post.gifUrl) {
+            if (post.isVideo) {
+                imgHtml = `<video src="${post.gifUrl}" class="post-img" controls style="max-height: 280px; border-radius: 8px; margin-top: 8px; width: 100%; object-fit: cover; background: #000;"></video>`;
+            } else if (post.isAudio) {
+                imgHtml = typeof buildCustomAudioPlayerHTML === 'function' ? buildCustomAudioPlayerHTML(post.gifUrl, post.id, post.userColor) : '';
+            } else {
+                imgHtml = `<img src="${post.gifUrl}" class="post-img" onerror="this.style.display='none'" alt="Image/GIF">`;
+            }
+        }
+        
+        let pollHtml = typeof generatePollHtml === 'function' ? generatePollHtml(post, post.id) : '';
+        
+        const postHtml = `
+            <div style="background: color-mix(in srgb, var(--bg) 50%, transparent); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border);">
+                <div style="font-size: 10px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; font-weight: bold;">Post d'origine</div>
+                <div class="post-header">
+                    <span class="post-pseudo ${post.partyClass || ''}" style="${post.userColor ? `color:${post.userColor}` : ''}">${post.pseudo || 'Anonyme'}</span>
+                    <span class="post-time">${typeof getRelativeTime === 'function' ? getRelativeTime(post.timestamp) : ''}</span>
+                </div>
+                <div class="post-body">${typeof formatText === 'function' ? formatText(post.text) : (post.text || '')}</div>
+                ${imgHtml}
+                ${pollHtml}
+            </div>
+            <div id="profile-comments-list-${cacheKey}"></div>
+        `;
+        
+        container.innerHTML = postHtml;
+        
+        db.collection("posts").doc(postId).collection("comments").orderBy("timestamp", "asc").get().then(snap => {
+            let allComments = [];
+            snap.forEach(doc => allComments.push({id: doc.id, postId: postId, ...doc.data()}));
+            
+            window.profileCommentsCache[cacheKey] = allComments;
+            window.profileFocusedCommentId[cacheKey] = replyId;
+            window.profileOpenThreads[cacheKey + replyId] = true;
+            
+            renderProfileComments(cacheKey, cacheKey); 
+        });
+    });
+};
+
+// --- 4. MOTEUR INTERACTIF (Focus et Fermeture comme le Fil Principal) ---
+window.toggleProfileReplies = function(cacheKey, commentId, event) {
+    if (event) event.stopPropagation();
+    const allComments = window.profileCommentsCache[cacheKey] || [];
+    const focusId = window.profileFocusedCommentId[cacheKey] || null;
+    let depth = 1;
+
+    let current = allComments.find(c => c.id === commentId);
+    while (current && current.parentId && current.id !== focusId) {
+        depth++;
+        current = allComments.find(c => c.id === current.parentId);
+    }
+    
+    const isCurrentlyOpen = window.profileOpenThreads[cacheKey + commentId];
+
+    if (!isCurrentlyOpen && depth >= 3) {
+        window.profileOpenThreads[cacheKey + commentId] = true;
+        setProfileFocus(cacheKey, commentId, null);
+        return;
+    }
+
+    window.profileOpenThreads[cacheKey + commentId] = !isCurrentlyOpen;
+
+    if (isCurrentlyOpen) {
+        function closeAllDescendants(parentId) {
+            allComments.filter(c => c.parentId === parentId).forEach(child => {
+                window.profileOpenThreads[cacheKey + child.id] = false;
+                closeAllDescendants(child.id); 
+            });
+        }
+        closeAllDescendants(commentId);
+        window.profileFocusedCommentId[cacheKey] = null; 
+    }
+    
+    renderProfileComments(cacheKey);
+};
+
+window.setProfileFocus = function(cacheKey, commentId, event) {
+    if (event) {
+        event.stopPropagation();
+        if (event.target.closest('button') || event.target.closest('.hashtag-link') || event.target.closest('a')) return;
+        
+        const allComments = window.profileCommentsCache[cacheKey] || [];
+        function closeAllDescendants(parentId) {
+            allComments.filter(c => c.parentId === parentId).forEach(child => {
+                window.profileOpenThreads[cacheKey + child.id] = false;
+                closeAllDescendants(child.id); 
+            });
+        }
+        window.profileOpenThreads[cacheKey + commentId] = false;
+        closeAllDescendants(commentId);
+    } else {
+        if (commentId) window.profileOpenThreads[cacheKey + commentId] = true;
+    }
+    
+    if (window.profileFocusedCommentId[cacheKey] === commentId) {
+        renderProfileComments(cacheKey);
+        return;
+    }
+    
+    window.profileFocusedCommentId[cacheKey] = commentId;
+    renderProfileComments(cacheKey);
+};
+
+// --- 5. L'AFFICHEUR D'ARBRE (Le Render) ---
+window.renderProfileComments = function(cacheKey, targetListId = null) {
+    if (!targetListId) {
+        if (cacheKey.startsWith('post-')) targetListId = cacheKey.split('post-')[1];
+        else if (cacheKey.startsWith('reply-')) targetListId = cacheKey;
+    }
+    
+    const allComments = window.profileCommentsCache[cacheKey] || [];
+    let html = '';
+    
+    if (allComments.length === 0) {
+        html = '<div style="font-size:10px; color:var(--text-dim); font-style:italic; text-align:center;">Aucune discussion.</div>';
+    } else {
+        const focusId = window.profileFocusedCommentId[cacheKey] || null;
+        let roots = allComments.filter(c => !c.parentId);
+        let focusPath = [];
+        
+        if (focusId) {
+            let curr = allComments.find(c => c.id === focusId);
+            while (curr) {
+                focusPath.push(curr.id);
+                curr = allComments.find(c => c.id === curr.parentId);
+            }
+            roots = roots.filter(c => focusPath.includes(c.id));
+            
+            html += `<div style="margin-bottom: 12px; display: flex; align-items: center;">
+                        <button class="minimal-gif-btn" style="color: var(--text); border-color: var(--border); padding: 4px 8px;" 
+                        onclick="window.profileFocusedCommentId['${cacheKey}'] = null; window.renderProfileComments('${cacheKey}', '${targetListId}')">
+                            ← Afficher tout le fil
+                        </button>
+                     </div>`;
+        }
+        
+        roots.forEach(r => {
+            html += buildProfileCommentNodeHtml(r, allComments, cacheKey, true, focusPath, focusId, 0);
+        });
+    }
+    
+    const listEl = document.getElementById(`profile-comments-list-${targetListId}`);
+    if (listEl) listEl.innerHTML = html;
+};
+
+// Le constructeur HTML de Noeud (copie conforme de l'affichage de base)
+window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, focusPath = [], focusId = null, depth = 0) {
+    let imgHtml = '';
+    if (c.mediaUrls && c.mediaUrls.length > 0) {
+        let gridHtml = c.mediaUrls.map(media => {
+            if (media.isVideo) return `<video src="${media.url}" class="post-img" controls style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; background:#000; margin:0;"></video>`;
+            else return `<img src="${media.url}" class="post-img" style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; margin:0;" onerror="this.style.display='none'">`;
+        }).join('');
+        let cols = c.mediaUrls.length === 1 ? '1fr' : '1fr 1fr';
+        imgHtml = `<div style="display: grid; grid-template-columns: ${cols}; gap: 6px; margin-top: 8px;">${gridHtml}</div>`;
+    } else if (c.gifUrl) {
+        if (c.isVideo) {
+            imgHtml = `<video src="${c.gifUrl}" class="post-img" controls style="max-height: 280px; border-radius: 8px; margin-top: 8px; width: 100%; object-fit: cover; background: #000;"></video>`;
+        } else if (c.isAudio) {
+            imgHtml = typeof buildCustomAudioPlayerHTML === 'function' ? buildCustomAudioPlayerHTML(c.gifUrl, c.id, c.userColor) : '';
+        } else {
+            imgHtml = `<img src="${c.gifUrl}" class="post-img" onerror="this.style.display='none'" alt="Image/GIF">`;
+        }
+    }
+    
+    let pollHtml = typeof generatePollHtml === 'function' ? generatePollHtml(c, c.postId, c.id) : '';
+    
+    let textHtml = c.text ? `<div class="post-body" style="margin-bottom: 6px;">${typeof formatText === 'function' ? formatText(c.text) : c.text}</div>` : '';
+    const pc = c.partyClass || '';
+    const colorStyle = c.userColor ? `color: ${c.userColor} !important;` : '';
+    
+    const cardClickAttr = `onclick="setProfileFocus('${cacheKey}', '${c.id}', event)"`;
+    
+    function countDescs(parentId) {
+        let count = 0;
+        allComments.filter(child => child.parentId === parentId).forEach(child => { count += 1 + countDescs(child.id); });
+        return count;
+    }
+    const totalDesc = countDescs(c.id);
+
+    const isTarget = c.id === focusId;
+    const isFocusedAncestor = focusPath.includes(c.id);
+    const targetClass = isTarget ? 'focused-target' : '';
+    const isOpen = window.profileOpenThreads[cacheKey + c.id] || isFocusedAncestor;
+    
+    const toggleBtnHtml = totalDesc > 0 ? `<button class="action-btn" onclick="toggleProfileReplies('${cacheKey}', '${c.id}', event)"> <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2c5.523 0 10 4.029 10 9s-4.477 9-10 9c-1.34 0-2.618-.226-3.784-.633L3 21l1.558-4.524C3.208 14.938 2 13.048 2 11c0-4.971 4.477-9 10-9z"/></svg> ${totalDesc} </button>` : '';
+    
+    let replyIndicator = '';
+    if (c.parentId) {
+        const parentComment = allComments.find(p => p.id === c.parentId);
+        if (parentComment && parentComment.pseudo) {
+            replyIndicator = `<span class="reply-indicator">en réponse à <span class="mention-link" style="pointer-events:none;">@${parentComment.pseudo}</span></span>`;
+        }
+    }
+
+    let html = `<div class="comment-node-wrapper" style="${isRoot ? 'margin-bottom: 12px;' : ''}">`;
+    html += `
+        <div class="comment-card ${targetClass}" ${cardClickAttr}>
+            <div class="post-header" style="margin-bottom: 4px; display:flex; align-items:center; flex-wrap:wrap;">
+                <span class="post-pseudo ${pc}" style="${colorStyle}">${c.pseudo || 'Anonyme'}</span>
+                ${replyIndicator}
+            </div>
+            <span class="post-time" style="display:block; margin-bottom:6px;">${typeof getRelativeTime === 'function' ? getRelativeTime(c.timestamp) : ''}</span>
+            ${textHtml}
+            ${imgHtml}
+            ${pollHtml}
+            <div class="post-actions" style="padding-top: 4px; gap: 12px; border-top:none;">
+                ${toggleBtnHtml}
+            </div>
+        </div>
+    `;
+    
+    if (isOpen) {
+        let children = allComments.filter(child => child.parentId === c.id);
+        if (isFocusedAncestor && !isTarget) {
+            children = children.filter(child => focusPath.includes(child.id));
+        }
+        if (children.length > 0) {
+            let containerClass = 'comment-thread-nested';
+            let nextDepth = depth + 1;
+            if (isFocusedAncestor && !isTarget) {
+                containerClass += ' flatten';
+                nextDepth = 0;
+            } else if (depth === 2) {
+                containerClass += ' reset-margin';
+                nextDepth = 0;
+            }
+            html += `<div class="${containerClass}" onclick="event.stopPropagation()">`;
+            children.forEach(child => {
+                html += buildProfileCommentNodeHtml(child, allComments, cacheKey, false, focusPath, focusId, nextDepth);
+            });
+            html += `</div>`;
+        }
+    }
+    html += `</div>`;
+    return html;
 };
 
 </script>
