@@ -1943,6 +1943,63 @@ body.light-mode #mobile-feed-header {
     .chat-feed {
         padding-top: 70px !important;
     }
+    
+    /* ── CAROUSEL TWITTER SWIPE (Nouveau système de navigation) ── */
+    /* Active le mode verrouillé sur l'écran */
+    body.twitter-swipe-enabled {
+        overflow: hidden;
+    }
+    
+    body.twitter-swipe-enabled .page-wrapper {
+        position: relative;
+        overflow: hidden;
+        height: 100dvh;
+    }
+
+    /* Les 3 onglets deviennent des panneaux absolus alignés horizontalement */
+    body.twitter-swipe-enabled #communitySidebar, 
+    body.twitter-swipe-enabled #mainContent, 
+    body.twitter-swipe-enabled #profileWrapper {
+        position: absolute !important;
+        top: 0;
+        width: 100vw !important;
+        height: 100dvh !important;
+        display: flex !important;
+        flex-direction: column;
+        visibility: visible !important;
+        overflow-y: auto !important;
+        transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        will-change: transform;
+        padding-bottom: 70px !important; /* Laisse la place à la barre du bas */
+    }
+
+    /* Positionnement initial sur le ruban (0, 100vw, 200vw) */
+    body.twitter-swipe-enabled #communitySidebar { 
+        background: var(--surface); 
+        left: 0; 
+    }
+    body.twitter-swipe-enabled #mainContent { 
+        background: var(--bg); 
+        left: 100vw; 
+        display: block !important; 
+    }
+    body.twitter-swipe-enabled #profileWrapper { 
+        background: var(--bg); 
+        left: 200vw; 
+        display: block !important; 
+    }
+
+    /* On annule les anciens masquages car le changement se fait par positionnement */
+    body.twitter-swipe-enabled #mobile-profile-section { display: flex !important; }
+    body.twitter-swipe-enabled .controls-panel,
+    body.twitter-swipe-enabled .t2-card,
+    body.twitter-swipe-enabled .data-table-card { display: block !important; }
+    body.twitter-swipe-enabled .main-grid,
+    body.twitter-swipe-enabled .maps-grid { display: grid !important; }
+    
+    /* Masquer la grosse bannière PC qui fait doublon */
+    body.twitter-swipe-enabled .site-header { display: none !important; }
+
 }
 
 </style>
@@ -7886,106 +7943,81 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
     return html;
 };
 
-// --- GESTION DU SWIPE (GLISSEMENT) POUR CHANGER D'ONGLET ---
-(function initSwipeTabs() {
-    let startX = 0;
-    let startY = 0;
-    let currentX = 0;
-    let isSwiping = false;
-    let isHorizontalSwipe = null;
-    const swipeThreshold = 60;
-    const tabs = ['community', 'simulator', 'profile'];
+// --- GESTION DU SWIPE TWITTER (GLISSEMENT FLUIDE ENTRE ONGLETS) ---
+(function initTwitterSwipe() {
+    if (window.innerWidth > 768) return;
+
+    // 1. Activer le CSS du Carousel
+    document.body.classList.add('twitter-swipe-enabled');
+
+    // 2. Isoler le Profil du Simulateur au chargement pour qu'ils glissent côte à côte
+    const profileSection = document.getElementById('mobile-profile-section');
+    const mainContent = document.getElementById('mainContent');
+    const communitySidebar = document.getElementById('communitySidebar');
+    let profileWrapper = document.getElementById('profileWrapper');
+
+    if (profileSection && mainContent && !profileWrapper) {
+        profileWrapper = document.createElement('div');
+        profileWrapper.id = 'profileWrapper';
+        profileWrapper.className = 'main-content'; // Pour hériter du style de scroll
+        
+        const container = document.createElement('div');
+        container.className = 'container';
+        container.style.paddingTop = '70px'; // Sous la barre flottante du haut
+        
+        container.appendChild(profileSection);
+        profileWrapper.appendChild(container);
+        
+        // On place ce nouvel onglet juste après le simulateur
+        mainContent.parentNode.insertBefore(profileWrapper, mainContent.nextSibling);
+    }
+
+    const panels = [communitySidebar, mainContent, profileWrapper];
     let currentTabIndex = 0;
 
-    // Crée un conteneur "scène" qui contiendra les 3 panneaux côte à côte
-    function getSliderScene() {
-        let scene = document.getElementById('swipe-scene');
-        if (!scene) {
-            scene = document.createElement('div');
-            scene.id = 'swipe-scene';
-            scene.style.cssText = `
-                position: fixed;
-                top: 0; left: 0;
-                width: 300vw;
-                height: 100dvh;
-                display: flex;
-                will-change: transform;
-                transition: none;
-                z-index: 5;
-                pointer-events: none;
-            `;
-            document.body.appendChild(scene);
-        }
-        return scene;
+    // 3. Fonction pour animer les rubans
+    function animateToTab(index) {
+        currentTabIndex = index;
+        const offset = -index * 100;
+        panels.forEach(p => {
+            if (p) {
+                p.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+                p.style.transform = `translateX(${offset}vw)`;
+            }
+        });
     }
 
-    function getPanelForTab(tabName) {
-        if (tabName === 'community') return document.getElementById('communitySidebar');
-        if (tabName === 'simulator') return document.getElementById('mainContent');
-        if (tabName === 'profile') return document.getElementById('mobile-profile-section')?.closest('#mainContent') || document.getElementById('mainContent');
-        return null;
-    }
+    // 4. Synchronisation visuelle si on clique sur la barre du bas
+    const navButtons = document.querySelectorAll('.bottom-nav button');
+    navButtons.forEach((btn, index) => {
+        btn.addEventListener('click', () => {
+            animateToTab(index);
+        });
+    });
 
-    function getActiveTabIndex() {
-        if (document.body.classList.contains('mobile-show-profile')) return 2;
-        if (document.body.classList.contains('mobile-show-sim')) return 1;
-        return 0;
-    }
+    // 5. Initialisation au lancement selon la classe du body
+    if (document.body.classList.contains('mobile-show-profile')) animateToTab(2);
+    else if (document.body.classList.contains('mobile-show-sim')) animateToTab(1);
+    else animateToTab(0);
 
-    function activateTab(index) {
-        const btn = document.querySelector(`.bottom-nav button[data-tab="${tabs[index]}"]`);
-        if (btn) btn.click();
-    }
-
-    // Snapshot rapide : prend une "photo" DOM d'un panneau pour la transition
-    function buildSnapshot(tabIndex) {
-        const snapId = `swipe-snap-${tabIndex}`;
-        let snap = document.getElementById(snapId);
-        if (snap) snap.remove();
-
-        snap = document.createElement('div');
-        snap.id = snapId;
-        snap.style.cssText = `
-            width: 100vw;
-            height: 100dvh;
-            flex-shrink: 0;
-            overflow: hidden;
-            position: relative;
-            background: var(--bg);
-        `;
-
-        // Contenu simulé selon l'onglet (léger, juste pour la preview)
-        const labels = ['💬 Communauté', '📊 Simulateur', '👤 Profil'];
-        const colors = ['var(--accent)', 'var(--text)', 'var(--text-dim)'];
-        snap.innerHTML = `<div style="
-            width:100%; height:100%;
-            display:flex; align-items:center; justify-content:center;
-            font-size:20px; font-weight:bold;
-            color: ${colors[tabIndex]};
-            font-family: 'DM Serif Display', serif;
-            letter-spacing: -0.02em;
-            opacity: 0.5;
-        ">${labels[tabIndex]}</div>`;
-
-        return snap;
-    }
-
-    let swipeScene = null;
-    let sceneOffset = 0;
+    // 6. Mécanique de glissement natif (Touch)
+    let startX = 0, startY = 0, currentX = 0;
+    let isSwiping = false, isHorizontalSwipe = null;
+    const swipeThreshold = window.innerWidth * 0.15; // 15% de l'écran pour valider le changement
 
     document.addEventListener('touchstart', (e) => {
         if (window.innerWidth > 768) return;
-        if (e.target.closest('.user-dropdown') ||
-            e.target.closest('.friends-dropdown') ||
-            e.target.closest('input[type=range]') ||
-            document.body.classList.contains('mobile-composer-open') ||
-            e.target.closest('.maps-grid') ||
-            e.target.closest('.chart-card')) return;
+        
+        // Bloquer le swipe sur les éléments qui s'utilisent au doigt (sliders, menus, grilles, carte)
+        if (e.target.closest('.user-dropdown') || e.target.closest('.friends-dropdown') || 
+            e.target.closest('input[type=range]') || document.body.classList.contains('mobile-composer-open') || 
+            e.target.closest('.maps-grid') || e.target.closest('.chart-card') || 
+            e.target.closest('.data-table-card')) return;
 
-        // Bloque si scroll horizontal natif
+        // Bloquer le swipe sur un tableau qui a son propre scroll horizontal
         let el = e.target;
         while (el && el !== document.body) {
-            if (el.scrollWidth > el.clientWidth + 5 && !el.classList.contains('page-wrapper')) return;
+            if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
             el = el.parentElement;
         }
 
@@ -7993,125 +8025,71 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
         startY = e.touches[0].clientY;
         isSwiping = true;
         isHorizontalSwipe = null;
-        currentTabIndex = getActiveTabIndex();
-        sceneOffset = currentTabIndex * -100; // en vw
-
     }, { passive: true });
 
     document.addEventListener('touchmove', (e) => {
         if (!isSwiping) return;
 
-        const deltaX = e.touches[0].clientX - startX;
+        currentX = e.touches[0].clientX;
+        const deltaX = currentX - startX;
         const deltaY = e.touches[0].clientY - startY;
 
         if (isHorizontalSwipe === null) {
-            if (Math.abs(deltaX) > Math.abs(deltaY) + 5) {
+            if (Math.abs(deltaX) > Math.abs(deltaY) * 1.2) { // tolérance pour ne pas bloquer les scrolls un peu diagonaux
                 isHorizontalSwipe = true;
-            } else if (Math.abs(deltaY) > Math.abs(deltaX) + 5) {
+            } else {
                 isHorizontalSwipe = false;
                 isSwiping = false;
                 return;
-            } else {
-                return; // Pas encore décidé
             }
         }
 
         if (!isHorizontalSwipe) return;
 
-        currentX = e.touches[0].clientX;
-        const swipeDeltaX = currentX - startX;
-
-        // Bloque aux extrémités avec résistance
-        if ((currentTabIndex === 0 && swipeDeltaX > 0) ||
-            (currentTabIndex === tabs.length - 1 && swipeDeltaX < 0)) {
-            // Résistance élastique
-            const resist = swipeDeltaX * 0.15;
-            if (swipeScene) {
-                swipeScene.style.transition = 'none';
-                swipeScene.style.transform = `translateX(calc(${sceneOffset}vw + ${resist}px))`;
-            }
+        // Effet de résistance (élastique) aux deux bords de l'application
+        if ((currentTabIndex === 0 && deltaX > 0) || (currentTabIndex === panels.length - 1 && deltaX < 0)) {
+            const resistDelta = deltaX * 0.25;
+            panels.forEach(p => {
+                if (p) {
+                    p.style.transition = 'none';
+                    p.style.transform = `translateX(calc(${-currentTabIndex * 100}vw + ${resistDelta}px))`;
+                }
+            });
             return;
         }
 
-        // Initialise la scène au premier mouvement horizontal
-        if (!swipeScene) {
-            swipeScene = getSliderScene();
-            swipeScene.innerHTML = '';
-            swipeScene.style.pointerEvents = 'all';
-
-            // Construit les 3 snapshots
-            tabs.forEach((tab, i) => {
-                const snap = buildSnapshot(i);
-                swipeScene.appendChild(snap);
-            });
-
-            // Clone le vrai contenu de l'onglet actif par-dessus
-            const realSnap = document.getElementById(`swipe-snap-${currentTabIndex}`);
-            if (realSnap) realSnap.style.opacity = '1';
-
-            // Position initiale = onglet actif
-            swipeScene.style.transform = `translateX(${sceneOffset}vw)`;
-            document.body.style.overflow = 'hidden';
-        }
-
-        swipeScene.style.transition = 'none';
-        const translateX = sceneOffset + (swipeDeltaX / window.innerWidth * 100);
-        swipeScene.style.transform = `translateX(${translateX}vw)`;
-
+        // Glissement parfait calqué sur le mouvement du doigt 
+        panels.forEach(p => {
+            if (p) {
+                p.style.transition = 'none';
+                p.style.transform = `translateX(calc(${-currentTabIndex * 100}vw + ${deltaX}px))`;
+            }
+        });
     }, { passive: true });
 
     document.addEventListener('touchend', (e) => {
-        if (!isSwiping) return;
+        if (!isSwiping || !isHorizontalSwipe) return;
         isSwiping = false;
-        isHorizontalSwipe = false;
 
         const deltaX = currentX - startX;
-
-        if (!swipeScene) return;
-
-        const shouldSwitch = Math.abs(deltaX) > swipeThreshold;
-        let targetIndex = currentTabIndex;
-
-        if (shouldSwitch) {
-            if (deltaX < 0 && currentTabIndex < tabs.length - 1) targetIndex = currentTabIndex + 1;
-            else if (deltaX > 0 && currentTabIndex > 0) targetIndex = currentTabIndex - 1;
-        }
-
-        const targetOffset = targetIndex * -100;
-
-        // Animation de finalisation fluide
-        swipeScene.style.transition = 'transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        swipeScene.style.transform = `translateX(${targetOffset}vw)`;
-
-        setTimeout(() => {
-            // Nettoyage
-            if (swipeScene) {
-                swipeScene.remove();
-                swipeScene = null;
+        
+        // Validation du glissement : si la force est suffisante, on change l'onglet
+        if (Math.abs(deltaX) > swipeThreshold) {
+            if (deltaX < 0 && currentTabIndex < panels.length - 1) {
+                currentTabIndex++; // Slide gauche = Onglet suivant
+            } else if (deltaX > 0 && currentTabIndex > 0) {
+                currentTabIndex--; // Slide droit = Onglet précédent
             }
-            document.body.style.overflow = '';
-
-            // Changement d'onglet réel si nécessaire
-            if (targetIndex !== currentTabIndex) {
-                activateTab(targetIndex);
-            }
-        }, 320);
-
-    }, { passive: true });
-
-    // Annulation si le toucher est interrompu
-    document.addEventListener('touchcancel', () => {
-        isSwiping = false;
-        if (swipeScene) {
-            swipeScene.style.transition = 'transform 0.25s ease';
-            swipeScene.style.transform = `translateX(${sceneOffset}vw)`;
-            setTimeout(() => {
-                if (swipeScene) { swipeScene.remove(); swipeScene = null; }
-                document.body.style.overflow = '';
-            }, 250);
         }
-    }, { passive: true });
-
+        
+        // On simule le clic sur la nav du bas pour changer la couleur du bouton ciblé proprement
+        const tabs = ['community', 'simulator', 'profile'];
+        const btnToClick = document.querySelector(`.bottom-nav button[data-tab="${tabs[currentTabIndex]}"]`);
+        if (btnToClick) btnToClick.click();
+        
+        // Finalise l'animation vers la position bloquée (-100vw, -200vw etc...)
+        animateToTab(currentTabIndex);
+    });
 })();
 
 </script>
