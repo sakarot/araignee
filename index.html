@@ -7875,30 +7875,32 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
     return html;
 };
 
-// --- GESTION DU SWIPE (GLISSEMENT) POUR CHANGER D'ONGLET ---
+// --- GESTION DU SWIPE (GLISSEMENT) POUR CHANGER D'ONGLET AVEC APERÇU ---
 (function initSwipeTabs() {
-    let startX = 0;
-    let startY = 0;
-    let currentX = 0;
-    let isSwiping = false;
-    let isHorizontalSwipe = null;
-    const swipeThreshold = 80; // Distance en pixels pour valider le changement
+    let startX = 0, startY = 0, currentX = 0;
+    let isSwiping = false, isHorizontalSwipe = null;
+    const swipeThreshold = 80; 
     const tabs = ['community', 'simulator', 'profile'];
     let currentTabIndex = 0;
+    
+    let currentContainer = null;
+    let targetContainer = null;
+    let swipeDirection = 0; 
 
-    function getActiveContainer() {
-        if (document.body.classList.contains('mobile-show-profile')) return document.getElementById('mobile-profile-section');
-        if (document.body.classList.contains('mobile-show-sim')) return document.getElementById('mainContent');
-        return document.getElementById('communitySidebar');
+    // Identifie de manière stricte vos 3 vues principales
+    function getContainerByIndex(index) {
+        if (index === 0) return document.getElementById('communitySidebar');
+        if (index === 1) return document.getElementById('mainContent');
+        if (index === 2) return document.getElementById('voter-profile-view') || document.getElementById('mobile-profile-section');
+        return null;
     }
 
     document.addEventListener('touchstart', (e) => {
         if (window.innerWidth > 768) return;
         
-        // Bloque le swipe si on est dans un menu, sur un slider, sur une carte géographique ou si on crée un post
+        // Bloque le swipe si on interagit avec des menus, sliders, cartes ou textes
         if (e.target.closest('.user-dropdown') || e.target.closest('.friends-dropdown') || e.target.closest('input[type=range]') || document.body.classList.contains('mobile-composer-open') || e.target.closest('.maps-grid') || e.target.closest('.chart-card')) return;
 
-        // Bloque le swipe si l'élément touché possède son propre scroll horizontal (comme le tableau de données)
         let el = e.target;
         while (el && el !== document.body) {
             if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
@@ -7908,82 +7910,154 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         isSwiping = true;
-        isHorizontalSwipe = null; // On ne sait pas encore l'axe principal du geste
+        isHorizontalSwipe = null;
+        targetContainer = null;
+        swipeDirection = 0;
         
-        // Détection de l'onglet de départ
+        // Détermine l'onglet de départ grâce aux classes sur le Body
         if (document.body.classList.contains('mobile-show-profile')) currentTabIndex = 2;
         else if (document.body.classList.contains('mobile-show-sim')) currentTabIndex = 1;
         else currentTabIndex = 0;
+
+        currentContainer = getContainerByIndex(currentTabIndex);
     }, { passive: true });
 
     document.addEventListener('touchmove', (e) => {
-        if (!isSwiping) return;
+        if (!isSwiping || !currentContainer) return;
         
         currentX = e.touches[0].clientX;
         const currentY = e.touches[0].clientY;
         const deltaX = currentX - startX;
         const deltaY = currentY - startY;
 
-        // Calcule si l'utilisateur glisse horizontalement ou verticalement
+        // Attendre que le doigt bouge de 10px pour être sûr que ce n'est pas un Scroll vertical
         if (isHorizontalSwipe === null) {
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
                 isHorizontalSwipe = true;
-            } else {
+            } else if (Math.abs(deltaY) > 10) {
                 isHorizontalSwipe = false;
-                isSwiping = false; // Abandon, on laisse le navigateur scroller verticalement
+                isSwiping = false; 
                 return;
+            } else {
+                return; 
             }
         }
 
         if (!isHorizontalSwipe) return;
 
-        // Bloque l'étirement excessif aux extrémités (pas d'onglet avant le premier ni après le dernier)
+        // Bloque l'étirement aux extrémités (pas d'onglet avant le 1er ni après le dernier)
         if ((currentTabIndex === 0 && deltaX > 0) || (currentTabIndex === tabs.length - 1 && deltaX < 0)) return;
 
-        // Mouvement de translation progressif sous le doigt
-        const container = getActiveContainer();
-        if (container) {
-            container.style.transition = 'none';
-            container.style.transform = `translateX(${deltaX}px)`;
-            container.style.opacity = 1 - (Math.abs(deltaX) / (window.innerWidth * 1.2)); // S'efface légèrement
+        const newDirection = deltaX < 0 ? -1 : 1;
+        
+        // Si changement de direction en cours de route, on réinitialise la cible
+        if (targetContainer && swipeDirection !== newDirection) {
+            resetTargetStyles(targetContainer);
+            targetContainer = null;
         }
+        
+        swipeDirection = newDirection;
+        
+        // Prépare et force l'affichage du conteneur suivant
+        if (!targetContainer) {
+            const targetIndex = currentTabIndex - swipeDirection;
+            targetContainer = getContainerByIndex(targetIndex);
+            
+            if (targetContainer) {
+                // MAGIE ICI : On utilise setProperty(..., 'important') pour écraser le display:none mobile !
+                targetContainer.style.setProperty('display', 'flex', 'important');
+                targetContainer.style.setProperty('flex-direction', 'column', 'important');
+                targetContainer.style.setProperty('visibility', 'visible', 'important');
+                targetContainer.style.setProperty('opacity', '1', 'important'); 
+                
+                targetContainer.style.setProperty('position', 'fixed', 'important');
+                targetContainer.style.setProperty('top', '0', 'important');
+                targetContainer.style.setProperty('left', '0', 'important');
+                targetContainer.style.setProperty('width', '100vw', 'important');
+                targetContainer.style.setProperty('height', '100vh', 'important');
+                targetContainer.style.setProperty('background', 'var(--bg)', 'important');
+                targetContainer.style.setProperty('z-index', '90', 'important');
+                targetContainer.style.setProperty('transition', 'none', 'important');
+                targetContainer.style.setProperty('overflow-y', 'hidden', 'important'); 
+            }
+        }
+
+        // Déplacement en direct
+        currentContainer.style.setProperty('transition', 'none', 'important');
+        currentContainer.style.setProperty('transform', `translateX(${deltaX}px)`, 'important');
+
+        if (targetContainer) {
+            const offset = swipeDirection === -1 ? window.innerWidth : -window.innerWidth;
+            targetContainer.style.setProperty('transform', `translateX(${offset + deltaX}px)`, 'important');
+        }
+        
     }, { passive: true });
 
     document.addEventListener('touchend', (e) => {
-        if (!isSwiping || !isHorizontalSwipe) return;
+        if (!isSwiping || !isHorizontalSwipe || !currentContainer) return;
         isSwiping = false;
         
         const deltaX = currentX - startX;
-        const container = getActiveContainer();
-
-        if (container) {
-            container.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // On remet l'animation pour finir la glissade
+        
+        if (Math.abs(deltaX) > swipeThreshold && targetContainer) {
+            // ---> SUCCÈS : L'animation va jusqu'au bout
+            const offset = swipeDirection === -1 ? -window.innerWidth : window.innerWidth;
             
-            if (Math.abs(deltaX) > swipeThreshold) {
-                // Changement d'onglet validé
-                if (deltaX < 0 && currentTabIndex < tabs.length - 1) {
-                    container.style.transform = `translateX(-100vw)`; // On le chasse vers la gauche
-                    container.style.opacity = 0;
-                    setTimeout(() => {
-                        container.style.transform = ''; container.style.opacity = '';
-                        document.querySelector(`.bottom-nav button[data-tab="${tabs[currentTabIndex + 1]}"]`).click();
-                    }, 250);
-                } else if (deltaX > 0 && currentTabIndex > 0) {
-                    container.style.transform = `translateX(100vw)`; // On le chasse vers la droite
-                    container.style.opacity = 0;
-                    setTimeout(() => {
-                        container.style.transform = ''; container.style.opacity = '';
-                        document.querySelector(`.bottom-nav button[data-tab="${tabs[currentTabIndex - 1]}"]`).click();
-                    }, 250);
-                } else {
-                    container.style.transform = 'translateX(0)'; container.style.opacity = 1;
-                }
-            } else {
-                // Geste trop court -> On rebondit à la position initiale
-                container.style.transform = 'translateX(0)'; container.style.opacity = 1;
+            currentContainer.style.setProperty('transition', 'transform 0.3s ease-out', 'important');
+            targetContainer.style.setProperty('transition', 'transform 0.3s ease-out', 'important');
+            
+            currentContainer.style.setProperty('transform', `translateX(${offset}px)`, 'important');
+            targetContainer.style.setProperty('transform', `translateX(0px)`, 'important');
+            
+            setTimeout(() => {
+                // On simule le clic pour que votre CSS reprenne le contrôle de l'affichage
+                const targetTabName = tabs[currentTabIndex - swipeDirection];
+                const btn = document.querySelector(`.bottom-nav button[data-tab="${targetTabName}"]`);
+                if(btn) btn.click();
+                
+                // On nettoie nos règles de "forçage" JS
+                resetTargetStyles(currentContainer);
+                resetTargetStyles(targetContainer);
+            }, 300);
+
+        } else {
+            // ---> ÉCHEC (Swipe trop court) : On rebondit sur la page d'origine
+            currentContainer.style.setProperty('transition', 'transform 0.3s ease-out', 'important');
+            currentContainer.style.setProperty('transform', 'translateX(0px)', 'important');
+            
+            if (targetContainer) {
+                const offset = swipeDirection === -1 ? window.innerWidth : -window.innerWidth;
+                targetContainer.style.setProperty('transition', 'transform 0.3s ease-out', 'important');
+                targetContainer.style.setProperty('transform', `translateX(${offset}px)`, 'important');
+                
+                setTimeout(() => {
+                    resetTargetStyles(targetContainer);
+                }, 300);
             }
         }
+        
+        targetContainer = null;
+        currentContainer = null;
     });
+
+    // Fonction de nettoyage pour rendre le contrôle à votre CSS
+    function resetTargetStyles(container) {
+        if(!container) return;
+        container.style.removeProperty('display');
+        container.style.removeProperty('flex-direction');
+        container.style.removeProperty('visibility');
+        container.style.removeProperty('position');
+        container.style.removeProperty('top');
+        container.style.removeProperty('left');
+        container.style.removeProperty('width');
+        container.style.removeProperty('height');
+        container.style.removeProperty('background');
+        container.style.removeProperty('z-index');
+        container.style.removeProperty('transform');
+        container.style.removeProperty('transition');
+        container.style.removeProperty('overflow-y');
+        container.style.removeProperty('opacity');
+    }
 })();
 
 </script>
