@@ -8444,38 +8444,32 @@ window.addEventListener('DOMContentLoaded', function() {
             isHorizontalSwipe = null;
         }, { passive: true });
 
+                document.addEventListener('touchstart', (e) => {
+            let el = e.target;
+            while (el && el !== document.body) {
+                if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
+                el = el.parentElement;
+            }
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            currentX = startX;  // 👈 AJOUT CRUCIAL : Réinitialise currentX
+            isSwiping = true;
+            isHorizontalSwipe = null;
+        }, { passive: false });
+
         document.addEventListener('touchmove', (e) => {
             if (!isSwiping) return;
 
             currentX = e.touches[0].clientX;
-            const deltaX = currentX - startX;
-            const deltaY = e.touches[0].clientY - startY;
+            const currentY = e.touches[0].clientY;
 
             if (isHorizontalSwipe === null) {
-                if (Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-                    isHorizontalSwipe = true;
-                } else {
-                    isHorizontalSwipe = false;
-                    isSwiping = false;
-                    return;
-                }
+                isHorizontalSwipe = Math.abs(currentX - startX) > Math.abs(currentY - startY);
             }
 
             if (!isHorizontalSwipe) return;
-            if (e.cancelable) e.preventDefault();
-
-            if ((currentTabIndex === 0 && deltaX > 0) || (currentTabIndex === panels.length - 1 && deltaX < 0)) {
-                const resistDelta = deltaX * 0.25;
-                panels.forEach(group => {
-                    group.forEach(p => {
-                        if (p) {
-                            p.style.transition = 'none';
-                            p.style.transform = `translate3d(calc(${-currentTabIndex * 100}vw + ${resistDelta}px), 0, 0)`;
-                        }
-                    });
-                });
-                return;
-            }
+            
+            e.preventDefault(); 
 
             panels.forEach(group => {
                 group.forEach(p => {
