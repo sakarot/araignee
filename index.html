@@ -8324,12 +8324,11 @@ window.finishQuiz = function() {
         axisStats: window.axisStats,
         quizCompleted: true
     }, { merge: true });.then(() => {
-            console.log("Résultats du test sauvegardés avec succès !");
+            console.log("Résultats du test sauvegardés !");
         });
 
     // 2. CRUCIAL : On confirme au système que le test n'est plus en cours
     window.isTakingQuiz = false;
-    }
 };
 
 window.saveBadgesToProfile = function() {
