@@ -8339,10 +8339,9 @@ window.saveBadgesToProfile = function() {
         document.getElementById('q-save-msg').style.display = 'block';
         // Cache le message et retourne sur l'onglet Profil après 2 secondes
         setTimeout(() => {
-            document.querySelector('.bottom-nav button[data-tab="profile"]').click();
             document.getElementById('q-save-msg').style.display = 'none';
             document.getElementById('q-result').style.display = 'none';
-            document.getElementById('q-intro').style.display = 'flex'; // Reset pour plus tard
+            
         }, 1500);
     });
 };
