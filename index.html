@@ -8624,16 +8624,16 @@ function initTwitterSwipe() {
             
             // --- NOUVEAU : GESTION DU DOUBLE-CLIC SUR ONGLET ACTIF ---
             if (btn.classList.contains('active')) {
-                // 1. Remonter tout en haut du panneau actuel
-                const panelsContainers = [
-                    document.getElementById('mobile-questions-section'),
-                    document.getElementById('communitySidebar'),
-                    document.getElementById('mainContent'),
-                    document.getElementById('profileWrapper')
-                ];
-                
-                if (panelsContainers[index]) {
-                    panelsContainers[index].scrollTo({ top: 0, behavior: 'smooth' });
+                                // 1. Remonter tout en haut du panneau actuel
+                if (tabId === 'questions') {
+                    document.getElementById('mobile-questions-section')?.scrollTo({ top: 0, behavior: 'smooth' });
+                } else if (tabId === 'community') {
+                    // CORRECTION ICI : On fait défiler le chat-feed, pas le conteneur parent !
+                    document.getElementById('chat-feed')?.scrollTo({ top: 0, behavior: 'smooth' });
+                } else if (tabId === 'simulator') {
+                    document.getElementById('mainContent')?.scrollTo({ top: 0, behavior: 'smooth' });
+                } else if (tabId === 'profile') {
+                    document.getElementById('profileWrapper')?.scrollTo({ top: 0, behavior: 'smooth' });
                 }
                 
                 // 2. Actualiser les données selon l'onglet
