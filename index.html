@@ -2006,7 +2006,13 @@ body.light-mode #mobile-feed-header {
 
     /* Forcer l'affichage de l'intérieur du profil */
     body.twitter-swipe-enabled #mobile-profile-section { display: flex !important; flex-direction: column; width: 100% !important; background: transparent !important; border: none !important; padding: 0 !important; margin: 0 !important; }
-
+	body.twitter-swipe-enabled {
+    /* 1. Coupe l'effet élastique (rebond) horizontal sur iOS */
+    overscroll-behavior-x: none !important; 
+    
+    /* 2. Safari ignorera ses propres gestes horizontaux sur cet élément */
+    touch-action: pan-y !important; 
+}
 
     body.twitter-swipe-enabled .site-header { display: none !important; }
 
@@ -2249,9 +2255,11 @@ body.mobile-show-questions #communitySidebar { display: none !important; }
           
           <div id="voter-profile-view" style="display: none; flex-direction: column; align-items: flex-start; gap: 6px;">
             <div class="username-container" style="display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--text-dim) 6%, transparent); padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);">
-              <span id="user-badge" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: transparent; transition: background 0.3s;"></span>
-              <strong id="user-display-name" style="font-size: 15px; transition: color 0.3s;"></strong>
-            </div>
+  <span id="user-badges-container"></span> 
+  
+  <span id="user-badge" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: transparent; transition: background 0.3s;"></span>
+  <strong id="user-display-name" style="font-size: 15px; transition: color 0.3s;"></strong>
+</div>
             
             <div id="bio-display-container" style="display: flex; align-items: center; gap: 6px; margin-left: 4px;">
               <span id="user-bio-text" style="font-size: 12px; color: var(--text-dim); font-style: italic; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Chargement...</span>
@@ -3926,18 +3934,29 @@ function fetchMyVote() {
   });
 
 myUserListener = db.collection("users").doc(currentUser.uid).onSnapshot(doc => {
-    if (doc.exists && doc.data().history) {
-        historyVotes = Object.values(doc.data().history).filter(v => v);
-    } else {
-        historyVotes = [];
-    }
-    updateMyUIColors();
+  if (doc.exists) {
+    const data = doc.data();
     
-    // --- NOUVEAU : Met à jour la liste d'historique dans le profil ---
-    if (typeof window.renderMyProfileHistory === 'function') {
-        window.renderMyProfileHistory(doc.exists ? doc.data() : {});
+    // NOUVEAU : On injecte les badges récupérés depuis Firebase vers votre interface Profil
+    const badgesContainer = document.getElementById('user-badges-container');
+    if (badgesContainer) {
+      badgesContainer.innerHTML = typeof window.generateBadgesHtml === 'function' ? window.generateBadgesHtml(data.badges) : '';
     }
-  });
+
+    if (data.history) {
+      historyVotes = Object.values(data.history).filter(v => v);
+    } else {
+      historyVotes = [];
+    }
+    
+    if (typeof window.renderMyProfileHistory === 'function') {
+      window.renderMyProfileHistory(data);
+    }
+  } else {
+    historyVotes = [];
+  }
+  updateMyUIColors();
+});
 }
 
 db.collection("votes").onSnapshot(snapshot => {
@@ -4315,10 +4334,7 @@ function renderFeed() {
 
     const isCommentOpen = window.openComments[postId] ? 'flex' : 'none';
     const cachedCommentsHtml = window.commentCache[postId] || '';
-	let badgesHtml = '';
-if (post.badges && post.badges.length > 0) {
-    badgesHtml = post.badges.map(b => BADGE_ICONS[b] || '').join('');
-}
+	let badgesHtml = typeof window.generateBadgesHtml === 'function' ? window.generateBadgesHtml(post.badges) : '';
 
     postEl.innerHTML = `
       <div class="post-header">
@@ -4653,13 +4669,16 @@ async function submitComment(postId) {
   let target = window.currentReplyTarget[postId];
   let parentId = target ? target.commentId : null;
   const partyClass = await getUserPartyClass(currentUser.uid);
-  const userColor = await getUserMixedColor(currentUser.uid); // <--- Ligne ajoutée
+  const userColor = await getUserMixedColor(currentUser.uid);
+  const userDocForBadges = await db.collection("users").doc(currentUser.uid).get();
+    const userBadges = (userDocForBadges.exists && userDocForBadges.data().badges) ? userDocForBadges.data().badges : [];
 
   db.collection("posts").doc(postId).collection("comments").add({
     uid: currentUser.uid,
     pseudo: currentUser.displayName || currentUser.email.split('@')[0],
     partyClass: partyClass,
-    userColor: userColor, // <--- Ligne ajoutée
+    userColor: userColor, 
+	badges: userBadges,
     text: text,
     gifUrl: gifEl,
     parentId: parentId, 
@@ -5626,15 +5645,17 @@ function buildCommentNodeHtml(c, allComments, isRoot, focusPath = [], focusId = 
 
     let html = `<div class="comment-node-wrapper" style="${isRoot ? 'margin-bottom: 12px;' : ''}">`;
 	let badgesHtml = '';
-if (post.badges && post.badges.length > 0) {
-    badgesHtml = post.badges.map(b => BADGE_ICONS[b] || '').join('');
+if (c.badges && c.badges.length > 0) { // ATTENTION : c.badges
+    badgesHtml = typeof window.generateBadgesHtml === 'function' 
+        ? window.generateBadgesHtml(c.badges) 
+        : c.badges.map(b => BADGE_ICONS[b] || '').join('');
 }
 
     html += `
     <div id="comment-${c.id}" class="comment-card ${targetClass}" ${cardClickAttr}>
       <div class="post-header" style="margin-bottom: 4px;">
         <div style="display:flex; align-items:center; flex-wrap: wrap;">
-            <span class="post-pseudo ${pc}" style="${colorStyle} cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile('${c.pseudo.replace(/'/g, "\\'")}')">${badgesHtml} ${post.pseudo}</span>
+            <span class="post-pseudo ${pc}" style="${colorStyle} cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile('${c.pseudo.replace(/'/g, "\\'")}')">${badgesHtml} ${c.pseudo || 'Anonyme'}</span>
 			${deleteBtnHtml}
             ${replyIndicator}
         </div>
@@ -5814,13 +5835,7 @@ window.openUserProfile = async function(pseudoToFind) {
         const age = userData.dob ? calculateAge(userData.dob) : 'Inconnu';
         const bio = userData.bio || "Cet utilisateur n'a pas encore de bio.";
 		
-		let badgesHtml = '';
-if (userData.badges && userData.badges.length > 0) {
-    badgesHtml = userData.badges.map(b => BADGE_ICONS[b] || '').join('');
-}
-
-// Mise à jour du pseudo avec les badges
-document.getElementById('user-display-name').innerHTML = badgesHtml + (userData.displayName || pseudoToFind);
+		let badgesHtml = typeof window.generateBadgesHtml === 'function' ? window.generateBadgesHtml(userData.badges) : '';
         
         const oldModal = document.getElementById('profile-modal');
         if (oldModal) oldModal.remove();
@@ -6808,13 +6823,15 @@ window.submitPost = async function() {
       const pseudoUser = currentUser.displayName || currentUser.email.split('@')[0];
       const partyClass = await getUserPartyClass(currentUser.uid);
       const userColor = await getUserMixedColor(currentUser.uid);
-
+const userDocForBadges = await db.collection("users").doc(currentUser.uid).get();
+const userBadges = (userDocForBadges.exists && userDocForBadges.data().badges) ? userDocForBadges.data().badges : [];
       // --- 3. PRÉPARATION DES DONNÉES ---
       const postData = {
           uid: currentUser.uid,
           pseudo: pseudoUser,
           partyClass: partyClass,
           userColor: userColor,
+		  badges: userBadges,
           text: text,
           gifUrl: finalGifUrl,
           mediaUrls: mediaUrlsArray, 
@@ -7859,10 +7876,7 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
             replyIndicator = `<span class="reply-indicator">en réponse à <span class="mention-link" style="pointer-events:none;">@${parentComment.pseudo}</span></span>`;
         }
     }
-	let badgesHtml = '';
-if (c.badges && c.badges.length > 0) {
-    badgesHtml = c.badges.map(b => BADGE_ICONS[b] || '').join('');
-}
+	let badgesHtml = typeof window.generateBadgesHtml === 'function' ? window.generateBadgesHtml(c.badges) : '';
 
     let html = `<div class="comment-node-wrapper" style="${isRoot ? 'margin-bottom: 12px;' : ''}">`;
     html += `
@@ -8291,17 +8305,73 @@ window.generateBadgesHtml = function(badgesArray) {
 // --- GESTION DU SWIPE TWITTER (VERSION DÉFINITIVE BLINDÉE) ---
 window.addEventListener('DOMContentLoaded', function() {
     
-    function initTwitterSwipe() {
-        if (window.innerWidth > 768) return;
-        // Évite de relancer l'initialisation si on redimensionne plusieurs fois
-        if (document.body.dataset.swipeInitialized) return;
-        document.body.dataset.swipeInitialized = "true";
+function initTwitterSwipe() {
+    // === BLOC DE RÉINITIALISATION POUR PC ===
+    if (window.innerWidth > 768) {
+        document.body.classList.remove('twitter-swipe-enabled');
+        document.body.removeAttribute('data-swipe-initialized');
 
-        document.body.classList.add('twitter-swipe-enabled');
-        document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
-
-        const mobileQuestionsSection = document.getElementById('mobile-questions-section');
+        // 1. RESTAURATION DU DOM (Crucial !)
+        // Sur mobile, la section profil est arrachée. Sur PC, il faut la remettre à sa place !
+        const profileWrapper = document.getElementById('profileWrapper');
         const profileSection = document.getElementById('mobile-profile-section');
+        const controlsPanel = document.querySelector('.controls-panel');
+        
+        if (profileWrapper && profileSection && controlsPanel) {
+            // On remet la section profil juste avant le panneau de contrôle (sa place d'origine)
+            controlsPanel.parentNode.insertBefore(profileSection, controlsPanel);
+            // On détruit le wrapper mobile qui casse la grille PC
+            profileWrapper.remove(); 
+        }
+
+        // 2. NETTOYAGE TOTAL DES STYLES
+        const panelsToReset = [
+            document.getElementById('mobile-questions-section'),
+            document.getElementById('communitySidebar'),
+            document.getElementById('mainContent'),
+            profileSection
+        ];
+
+        panelsToReset.forEach(p => {
+            if (p) {
+                p.style.removeProperty('position');
+                p.style.removeProperty('top');
+                p.style.removeProperty('left');
+                p.style.removeProperty('width');
+                p.style.removeProperty('height');
+                p.style.removeProperty('margin');
+                p.style.removeProperty('box-sizing');
+                p.style.removeProperty('visibility');
+                p.style.removeProperty('overflow-y');
+                p.style.removeProperty('overflow-x');
+                p.style.removeProperty('transform');
+                p.style.removeProperty('transition');
+                
+                // On s'assure que la section questions reste cachée sur PC
+                if (p.id === 'mobile-questions-section') {
+                    p.style.display = 'none';
+                } else {
+                    p.style.removeProperty('display');
+                }
+            }
+        });
+
+        return; 
+    }
+    // === FIN DU BLOC PC ===
+
+    // Évite de relancer l'initialisation si on redimensionne plusieurs fois
+    if (document.body.dataset.swipeInitialized) return;
+    document.body.dataset.swipeInitialized = "true";
+
+    // ... LAISSEZ LE RESTE DE LA FONCTION INTACT À PARTIR D'ICI ...
+
+    document.body.classList.add('twitter-swipe-enabled');
+    document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
+
+    const mobileQuestionsSection = document.getElementById('mobile-questions-section');
+    // ... LAISSEZ LE RESTE DE VOTRE CODE INTACT À PARTIR D'ICI ...
+    const profileSection = document.getElementById('mobile-profile-section');
         const mainContent = document.getElementById('mainContent');
         const communitySidebar = document.getElementById('communitySidebar');
         const communityFooter = document.getElementById('communityFooter');
@@ -8430,9 +8500,13 @@ window.addEventListener('DOMContentLoaded', function() {
                 if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
                 el = el.parentElement;
             }
+			
+            // --- CORRECTION ICI ---
+            const touch = e.touches[0]; // IL MANQUAIT CETTE LIGNE !
+            if (touch.clientX < 30 || touch.clientX > window.innerWidth - 30) return;
 
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
+            startX = touch.clientX; // Utilisable maintenant
+            startY = touch.clientY; // Utilisable maintenant
             isSwiping = true;
             isHorizontalSwipe = null;
         }, { passive: true });
