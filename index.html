@@ -1968,17 +1968,8 @@ body.light-mode #mobile-feed-header {
     
 /* ── CAROUSEL TWITTER SWIPE (V6 - Correctif Scroll et Swipe) ── */
 
-    body.twitter-swipe-enabled {
-        overflow: hidden;
-    }
-    
-    body.twitter-swipe-enabled .page-wrapper {
-        position: relative;
-        overflow: hidden;
-        height: 100dvh;
-    }
-
-    /* Les 3 panneaux principaux : positionnés, taillés à l'écran, et SCROLLABLES */
+        /* Les 4 panneaux principaux : positionnés, taillés à l'écran, et SCROLLABLES */
+    body.twitter-swipe-enabled #mobile-questions-section,
     body.twitter-swipe-enabled #communitySidebar, 
     body.twitter-swipe-enabled #mainContent, 
     body.twitter-swipe-enabled #profileWrapper {
@@ -1993,14 +1984,15 @@ body.light-mode #mobile-feed-header {
         overflow-y: auto !important;
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch;
-        padding-bottom: 90px !important; /* Laisse de la place pour la barre du bas */
+        padding-bottom: 90px !important;
         box-sizing: border-box !important;
     }
 
-    /* Position sur la bande 3D */
-    body.twitter-swipe-enabled #communitySidebar { left: 0; background: var(--surface); }
-    body.twitter-swipe-enabled #mainContent { left: 100vw; background: var(--bg); }
-    body.twitter-swipe-enabled #profileWrapper { left: 200vw; background: var(--bg); }
+    /* Position sur la bande 3D (0, 100, 200, 300) */
+    body.twitter-swipe-enabled #mobile-questions-section { left: 0; background: var(--bg); }
+    body.twitter-swipe-enabled #communitySidebar { left: 100vw; background: var(--surface); }
+    body.twitter-swipe-enabled #mainContent { left: 200vw; background: var(--bg); }
+    body.twitter-swipe-enabled #profileWrapper { left: 300vw; background: var(--bg); }
 
     /* Forcer l'affichage de l'intérieur du profil */
     body.twitter-swipe-enabled #mobile-profile-section { display: flex !important; flex-direction: column; width: 100% !important; background: transparent !important; border: none !important; padding: 0 !important; margin: 0 !important; }
@@ -8100,18 +8092,18 @@ window.resetNavBars = function() {
 // --- GESTION DU SWIPE TWITTER (V4 - Glissement fluide & Scroll Sécurisé) ---
 (function initTwitterSwipe() {
     if (window.innerWidth > 768) return;
-
     document.body.classList.add('twitter-swipe-enabled');
-    document.body.classList.remove('mobile-show-sim', 'mobile-show-profile');
+    document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
 
     const profileSection = document.getElementById('mobile-profile-section');
     const mainContent = document.getElementById('mainContent');
     const communitySidebar = document.getElementById('communitySidebar');
-    // 🔥 La zone de texte a été isolée pour la balader au doigt
     const communityFooter = document.getElementById('communityFooter');
+    
+    // NOUVEAU : On récupère la section Questions
+    const questionsSection = document.getElementById('mobile-questions-section');
+    
     let profileWrapper = document.getElementById('profileWrapper');
-	
-
     if (profileSection && mainContent && !profileWrapper) {
         profileWrapper = document.createElement('div');
         profileWrapper.id = 'profileWrapper';
@@ -8120,25 +8112,25 @@ window.resetNavBars = function() {
         container.appendChild(profileSection);
         profileWrapper.appendChild(container);
         mainContent.parentNode.insertBefore(profileWrapper, mainContent.nextSibling);
-		if (typeof window.attachSmoothScroll === 'function') {
+        if (typeof window.attachSmoothScroll === 'function') {
             window.attachSmoothScroll(profileWrapper);
         }
     }
 
-    // Le groupe 0 inclut maintenant la sidebar ET sa zone de texte !
+    // Le tableau contient maintenant les 4 onglets, dans le MÊME ORDRE que les boutons HTML !
     const panels = [
+        [questionsSection],
         [communitySidebar, communityFooter],
         [mainContent],
         [profileWrapper]
     ];
-    let currentTabIndex = 0;
+    let currentTabIndex = 1; // 1 = Communauté (onglet par défaut au lancement)
 
-    // CLONAGE DE LA BARRE DU BAS (Désactive les vieux scripts récalcitrants)
+    // CLONAGE DE LA BARRE DU BAS
     let bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
         let newBottomNav = bottomNav.cloneNode(true);
         bottomNav.parentNode.replaceChild(newBottomNav, bottomNav);
-        
         const newNavButtons = newBottomNav.querySelectorAll('button');
         newNavButtons.forEach((btn, index) => {
             btn.addEventListener('click', (e) => {
@@ -8152,54 +8144,61 @@ window.resetNavBars = function() {
     const activeBottomNav = document.querySelector('.bottom-nav');
     const topBar = document.getElementById('mobile-feed-header');
     const topLogo = document.getElementById('mobile-top-logo');
-
     if (activeBottomNav) activeBottomNav.style.transition = 'transform 0.3s ease-in-out';
     if (topBar) topBar.style.transition = 'transform 0.3s ease-in-out';
     if (topLogo) topLogo.style.transition = 'transform 0.3s ease-in-out';
+
     let initialNavResetDone = false;
-   function animateToTab(index) {
-    currentTabIndex = index;
-    const offset = -index * 100;
-    panels.forEach((group) => {
-        group.forEach(p => {
-            if (p) {
-                // 2. Fluidifier la transition : On allonge légèrement la durée (0.4s) et on utilise une courbe plus douce
-                p.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)'; 
-                p.style.transform = `translate3d(${offset}vw, 0, 0)`;
-            }
+
+    function animateToTab(index) {
+        currentTabIndex = index;
+        const offset = -index * 100;
+        panels.forEach((group) => {
+            group.forEach(p => {
+                if (p) {
+                    p.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
+                    p.style.transform = `translate3d(${offset}vw, 0, 0)`;
+                }
+            });
         });
-    });
 
-    const tabs = ['community', 'simulator', 'profile'];
-    const navButtons = document.querySelectorAll('.bottom-nav button');
-    navButtons.forEach(btn => btn.classList.remove('active'));
-    const targetBtn = document.querySelector(`.bottom-nav button[data-tab="${tabs[index]}"]`);
-    if (targetBtn) targetBtn.classList.add('active');
+        // Mise à jour des classes actives sur les 4 boutons
+        const tabs = ['questions', 'community', 'simulator', 'profile'];
+        const navButtons = document.querySelectorAll('.bottom-nav button');
+        navButtons.forEach(btn => btn.classList.remove('active'));
+        const targetBtn = document.querySelector(`.bottom-nav button[data-tab="${tabs[index]}"]`);
+        if (targetBtn) targetBtn.classList.add('active');
 
-    const topTitle = document.getElementById('mobile-top-title');
-    const titles = ["L'Araignée", "Simulateur", "Mon Profil"];
-    if (topTitle) topTitle.innerText = titles[index];
+        // Mise à jour du Titre en haut
+        const topTitle = document.getElementById('mobile-top-title');
+        const titles = ["L'Araignée - Profiling", "L'Araignée", "Simulateur", "Mon Profil"];
+        if (topTitle) topTitle.innerText = titles[index];
 
-    if (index === 1 && typeof renderMaps === 'function') {
-        setTimeout(renderMaps, 300);
-    }
+        // Chargement différé du Simulateur (qui est maintenant à l'index 2 !)
+        if (index === 2 && typeof renderMaps === 'function') {
+            setTimeout(renderMaps, 300);
+        }
 
-    // NOUVELLE LOGIQUE POUR LES BARRES : 
-    // Ne s'affiche par défaut qu'au premier chargement de l'onglet communauté
-    if (typeof window.resetNavBars === 'function') {
-        if (!initialNavResetDone && index === 0) {
-            window.resetNavBars();
-            initialNavResetDone = true;
+        // Affichage des barres pour la Communauté (Index 1 !)
+        if (typeof window.resetNavBars === 'function') {
+            if (!initialNavResetDone && index === 1) { 
+                window.resetNavBars();
+                initialNavResetDone = true;
+            }
+        }
+        
+        // Chargement du Profil (Index 3 !)
+        if (index === 3 && typeof window.switchProfileTab === 'function') {
+            window.switchProfileTab('posts');
         }
     }
+    
+    // On lance l'onglet par défaut (Communauté = index 1)
+    animateToTab(1);
 
-    if (index === 2 && typeof window.switchProfileTab === 'function') {
-        window.switchProfileTab('posts');
-    }
-}
-animateToTab(0);
+    let startX = 0, startY = 0, currentX = 0;
+// --- Le reste de ton code avec 'touchstart', 'touchmove', 'touchend' ne change pas ---
 
-   let startX = 0, startY = 0, currentX = 0;
 let isSwiping = false, isHorizontalSwipe = null;
 
 // Modifiez le seuil ici (ex: 8% au lieu de 15%) pour un déclenchement très facile
