@@ -8616,21 +8616,64 @@ function initTwitterSwipe() {
             btn.removeAttribute('onclick'); 
             
             // Écrase de force n'importe quelle autre action
-            btn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+                    btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const tabId = btn.getAttribute('data-tab');
+            
+            // --- NOUVEAU : GESTION DU DOUBLE-CLIC SUR ONGLET ACTIF ---
+            if (btn.classList.contains('active')) {
+                // 1. Remonter tout en haut du panneau actuel
+                const panelsContainers = [
+                    document.getElementById('mobile-questions-section'),
+                    document.getElementById('communitySidebar'),
+                    document.getElementById('mainContent'),
+                    document.getElementById('profileWrapper')
+                ];
                 
-                document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
+                if (panelsContainers[index]) {
+                    panelsContainers[index].scrollTo({ top: 0, behavior: 'smooth' });
+                }
                 
-                const tabId = btn.getAttribute('data-tab');
-                let targetIndex = index;
-                if (tabId === 'questions') targetIndex = 0;
-                else if (tabId === 'community') targetIndex = 1;
-                else if (tabId === 'simulator') targetIndex = 2;
-                else if (tabId === 'profile') targetIndex = 3;
+                // 2. Actualiser les données selon l'onglet
+                if (tabId === 'community') {
+                    // Simule un rechargement du fil d'actualité en déclenchant un tri par exemple
+                    if (typeof setFeedSort === 'function') {
+                        const currentSort = document.getElementById('mobileFeedSortSelect') ? document.getElementById('mobileFeedSortSelect').value : 'recent';
+                        setFeedSort(currentSort); 
+                    }
+                } else if (tabId === 'profile') {
+                    // Actualiser l'historique et les posts du profil
+                    if (currentUser) {
+                        db.collection("users").doc(currentUser.uid).get().then(doc => {
+                            if (doc.exists && typeof window.renderMyProfileHistory === 'function') {
+                                window.renderMyProfileHistory(doc.data());
+                            }
+                        });
+                    }
+                    if (typeof window.switchProfileTab === 'function') {
+                        window.switchProfileTab('posts'); // Recharge l'onglet "Mes posts" du profil
+                    }
+                }
                 
-                if (targetIndex < 4) animateToTab(targetIndex);
-            };
+                return; // TRÈS IMPORTANT : On arrête la fonction ici
+            }
+            // --- FIN DU NOUVEAU BLOC ---
+
+
+            // --- LE RESTE DE VOTRE CODE NORMAL ---
+            document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
+            let targetIndex = index;
+            
+            if (tabId === 'questions') targetIndex = 0;
+            else if (tabId === 'community') targetIndex = 1;
+            else if (tabId === 'simulator') targetIndex = 2;
+            else if (tabId === 'profile') targetIndex = 3;
+            
+            if (targetIndex < 4) animateToTab(targetIndex);
+        };
+
         });
 
         const activeBottomNav = document.querySelector('.bottom-nav');
