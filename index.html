@@ -8149,16 +8149,31 @@ window.startQuiz = function() {
     showQuestion();
 };
 
-window.showQuestion = function() {
-    if (currentQIndex >= QUESTIONS_DB.length) {
-        finishQuiz();
-        return;
+window.showQuestion = function() { 
+    if (currentQIndex >= QUESTIONS_DB.length) { finishQuiz(); return; } 
+    const qData = QUESTIONS_DB[currentQIndex]; 
+    
+    document.getElementById('q-progress').innerText = `Question ${currentQIndex + 1}/${QUESTIONS_DB.length}`; 
+    
+    // 1. Masquer le nom de la catégorie (Cela fera disparaître le nom des axes et le texte "Bonus")
+    document.getElementById('q-axis').style.display = 'none'; 
+    
+    // 2. Retirer les préfixes ("Complotiste : ", "Pragmatique : "...) des questions
+    let questionText = qData.q;
+    
+    // Si c'est une question Bonus et qu'elle contient un ":", on la coupe
+    if (qData.axe === "Bonus" && questionText.includes(':')) {
+        let parts = questionText.split(':');
+        parts.shift(); // On retire la première partie (ex: "Complotiste ")
+        questionText = parts.join(':').trim(); // On reconstitue le reste de la phrase sans les espaces en trop
+        
+        // On s'assure que la première lettre est bien en majuscule après la coupe
+        questionText = questionText.charAt(0).toUpperCase() + questionText.slice(1);
     }
-    const qData = QUESTIONS_DB[currentQIndex];
-    document.getElementById('q-progress').innerText = `Question ${currentQIndex + 1}/${QUESTIONS_DB.length}`;
-    document.getElementById('q-axis').innerText = qData.axe;
-    document.getElementById('q-text').innerText = `« ${qData.q} »`;
+    
+    document.getElementById('q-text').innerText = `« ${questionText} »`; 
 };
+
 
 window.answerQuestion = function(score) {
     const qData = QUESTIONS_DB[currentQIndex];
