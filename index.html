@@ -8221,13 +8221,8 @@ window.answerQuestion = function(score) {
 };
 
 window.finishQuiz = function() {
-    // AJOUTEZ CETTE LIGNE TOUT EN HAUT :
-    window.isTakingQuiz = false; 
-
     document.getElementById('q-container').style.display = 'none';
     document.getElementById('q-result').style.display = 'flex';
-    
-    // ... le reste de votre code ...
 
     let mainBadge = null;
     let maxScore = -1;
@@ -8317,18 +8312,14 @@ window.finishQuiz = function() {
     chartsContainer.innerHTML = chartsHtml;
 	
 	if (currentUser) {
-        
-    // 1. On sauvegarde en base de données
-    await db.collection("users").doc(currentUser.uid).set({
-        badges: earnedBadges,
-        axisStats: window.axisStats,
-        quizCompleted: true
-    }, { merge: true });.then(() => {
-            console.log("Résultats du test sauvegardés !");
+        db.collection("users").doc(currentUser.uid).set({
+            badges: earnedBadges,
+            axisStats: window.axisStats, // On sauvegarde l'état exact des 8 jauges !
+            quizCompleted: true
+        }, { merge: true }).then(() => {
+            console.log("Résultats du test sauvegardés avec succès !");
         });
-
-    // 2. CRUCIAL : On confirme au système que le test n'est plus en cours
-    window.isTakingQuiz = false;
+    }
 };
 
 window.saveBadgesToProfile = function() {
