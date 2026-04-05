@@ -8221,8 +8221,13 @@ window.answerQuestion = function(score) {
 };
 
 window.finishQuiz = function() {
+    // AJOUTEZ CETTE LIGNE TOUT EN HAUT :
+    window.isTakingQuiz = false; 
+
     document.getElementById('q-container').style.display = 'none';
     document.getElementById('q-result').style.display = 'flex';
+    
+    // ... le reste de votre code ...
 
     let mainBadge = null;
     let maxScore = -1;
@@ -8319,6 +8324,8 @@ window.finishQuiz = function() {
         }, { merge: true }).then(() => {
             console.log("Résultats du test sauvegardés avec succès !");
         });
+        
+        window.isTakingQuiz = false;
     }
 };
 
