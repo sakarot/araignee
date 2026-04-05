@@ -8329,40 +8329,23 @@ window.finishQuiz = function() {
     }
 };
 
-window.saveBadgesToProfile = async function() {
+window.saveBadgesToProfile = function() {
     if (!currentUser) return;
-
-    try {
-        // 1. On sauvegarde en base de données
-        await db.collection("users").doc(currentUser.uid).set({
-            badges: earnedBadges,
-            axisStats: window.axisStats,
-            quizCompleted: true
-        }, { merge: true });
-
-        // 2. CRUCIAL : On confirme au système que le test n'est plus en cours pour éviter le bug du retour
-        window.isTakingQuiz = false;
-
-        // 3. On garde le message pour vous dans la console
-        console.log("Résultats du test sauvegardés avec succès !");
-
-        // 4. On affiche le petit texte vert "Sauvegardé avec succès !" prévu dans votre HTML
-        const msg = document.getElementById('q-save-msg');
-        if (msg) {
-            msg.style.display = 'block';
-            setTimeout(() => {
-                msg.style.display = 'none';
-            }, 3000);
-        }
-
-        // 🚨 Il n'y a plus aucune redirection ici (les appels à animateToTab ou switchProfileTab ont été supprimés)
-        // Vous resterez donc sur vos 8 graphiques sans être renvoyé sur votre profil !
-
-    } catch (error) {
-        console.error("Erreur lors de la sauvegarde :", error);
-    }
+    
+    // Sauvegarde dans Firestore
+    db.collection("users").doc(currentUser.uid).set({
+        badges: earnedBadges
+    }, { merge: true }).then(() => {
+        document.getElementById('q-save-msg').style.display = 'block';
+        // Cache le message et retourne sur l'onglet Profil après 2 secondes
+        setTimeout(() => {
+            document.querySelector('.bottom-nav button[data-tab="profile"]').click();
+            document.getElementById('q-save-msg').style.display = 'none';
+            document.getElementById('q-result').style.display = 'none';
+            document.getElementById('q-intro').style.display = 'flex'; // Reset pour plus tard
+        }, 1500);
+    });
 };
-
 
 window.generateBadgesHtml = function(badgesArray) {
     if (!badgesArray || badgesArray.length === 0) return '';
