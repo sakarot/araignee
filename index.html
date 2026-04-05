@@ -8453,42 +8453,71 @@ window.addEventListener('DOMContentLoaded', function() {
             isHorizontalSwipe = null;
         }, { passive: false });
 
-        document.addEventListener('touchmove', (e) => {
-            if (!isSwiping) return;
+        
+       document.addEventListener('touchmove', (e) => {
+    if (!isSwiping) return;
 
-            currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
+    currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
 
-            if (isHorizontalSwipe === null) {
-                isHorizontalSwipe = Math.abs(currentX - startX) > Math.abs(currentY - startY);
+    // Détermine la direction du swipe au tout premier mouvement
+    if (isHorizontalSwipe === null) {
+        isHorizontalSwipe = Math.abs(currentX - startX) > Math.abs(currentY - startY);
+    }
+
+    // Si on scroll vers le bas pour lire, on annule le swipe horizontal
+    if (!isHorizontalSwipe) return;
+    
+    // Empêche le comportement natif (qui pourrait faire sauter la page)
+    if (e.cancelable) e.preventDefault();
+
+    const deltaX = currentX - startX;
+
+    // Fait suivre le doigt parfaitement
+    panels.forEach(group => {
+        group.forEach(p => {
+            if (p) {
+                // Coupe l'animation pour que ça suive le doigt INSTANTANÉMENT
+                p.style.transition = 'none'; 
+                // Déplace le panneau de la distance exacte du doigt (deltaX)
+                p.style.transform = `translate3d(calc(${-currentTabIndex * 100}vw + ${deltaX}px), 0, 0)`;
             }
-
-            if (!isHorizontalSwipe) return;
-            
-            e.preventDefault(); 
-
-            panels.forEach(group => {
-                group.forEach(p => {
-                    if (p) {
-                        p.style.transition = 'none';
-                        p.style.transform = `translate3d(calc(${-currentTabIndex * 100}vw + ${deltaX}px), 0, 0)`;
-                    }
-                });
-            });
-        }, { passive: false });
+        });
+    });
+}, { passive: false });
 
         document.addEventListener('touchend', (e) => {
-            if (!isSwiping || !isHorizontalSwipe) return;
-            isSwiping = false;
+    if (!isSwiping || !isHorizontalSwipe) return;
+    isSwiping = false;
 
-            const deltaX = currentX - startX;
-            if (Math.abs(deltaX) > swipeThreshold) {
-                if (deltaX < 0 && currentTabIndex < panels.length - 1) currentTabIndex++; 
-                else if (deltaX > 0 && currentTabIndex > 0) currentTabIndex--; 
-            }
-            animateToTab(currentTabIndex);
-        });
+    const deltaX = currentX - startX;
+    
+    // swipeThreshold est la distance (ex: 50px) à parcourir pour valider le changement de page
+    const swipeThreshold = 50; 
+
+    if (Math.abs(deltaX) > swipeThreshold) {
+        if (deltaX < 0 && currentTabIndex < panels.length - 1) {
+            currentTabIndex++; // Swipe vers la gauche (page suivante)
+        } else if (deltaX > 0 && currentTabIndex > 0) {
+            currentTabIndex--; // Swipe vers la droite (page précédente)
+        }
     }
+    
+    // Appel de ta fonction pour animer vers le bon onglet
+    animateToTab(currentTabIndex); 
+});
+
+function animateToTab(index) {
+    panels.forEach(group => {
+        group.forEach(p => {
+            if (p) {
+                // On REMET la transition pour que le reste du mouvement soit fluide
+                p.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+                p.style.transform = `translate3d(${-index * 100}vw, 0, 0)`;
+            }
+        });
+    });
+}
 
     // 🚨 Exécute le script au démarrage ET si la taille de l'écran change (pour les tests sur PC)
     initTwitterSwipe();
