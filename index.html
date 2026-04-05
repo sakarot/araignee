@@ -1997,14 +1997,15 @@ body.light-mode #mobile-feed-header {
     /* Forcer l'affichage de l'intérieur du profil */
     body.twitter-swipe-enabled #mobile-profile-section { display: flex !important; flex-direction: column; width: 100% !important; background: transparent !important; border: none !important; padding: 0 !important; margin: 0 !important; }
     
-    /* Le footer de saisie de la communauté s'attache en bas de l'onglet */
+        /* Le footer de saisie de la communauté s'attache en bas de l'onglet */
     body.twitter-swipe-enabled #communityFooter {
         position: fixed !important;
         bottom: 60px !important;
         width: 100vw !important;
-        left: 0;
+        left: 100vw; /* <--- TRÈS IMPORTANT : on le place avec la communauté à 100vw */
         z-index: 10;
     }
+
 
     body.twitter-swipe-enabled .site-header { display: none !important; }
 
@@ -7300,92 +7301,6 @@ window.seekAudio = function(e, id) {
     if (progressEl) progressEl.style.width = (percent * 100) + '%';
 };
 
-// ── Navigation mobile à 4 onglets (Communauté, Simulateur, Profil, Questions) ──
-(function() {
-    function initMobileNav() {
-        const btnCom = document.querySelector('.bottom-nav button[data-tab="community"]');
-        const btnSim = document.querySelector('.bottom-nav button[data-tab="simulator"]');
-        const btnProf = document.querySelector('.bottom-nav button[data-tab="profile"]');
-        const btnQuest = document.querySelector('.bottom-nav button[data-tab="questions"]');
-
-        if (!btnCom || !btnSim || !btnProf || !btnQuest) return;
-
-        function switchTab(tabName) {
-            // On retire toutes les classes
-            document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
-            btnCom.classList.remove('active');
-            btnSim.classList.remove('active');
-            btnProf.classList.remove('active');
-            btnQuest.classList.remove('active');
-
-            const mobileSort = document.getElementById('mobileFeedSortSelect');
-
-            if (tabName === 'questions') {
-                document.body.classList.add('mobile-show-questions');
-                btnQuest.classList.add('active');
-                document.getElementById('mobile-top-title').innerText = "L'Araignée - Profiling";
-                if(mobileSort) mobileSort.style.display = 'none';
-                if(mobileSort && mobileSort.parentNode.classList.contains('custom-select-wrapper')) mobileSort.parentNode.style.display = 'none';
-            } 
-            else if (tabName === 'simulator') {
-                document.body.classList.add('mobile-show-sim');
-                btnSim.classList.add('active');
-                document.getElementById('mobile-top-title').innerText = "L'Araignée";
-                if(mobileSort) mobileSort.style.display = 'none';
-                if(mobileSort && mobileSort.parentNode.classList.contains('custom-select-wrapper')) mobileSort.parentNode.style.display = 'none';
-                document.getElementById('mainContent')?.scrollTo(0, 0);
-                setTimeout(() => { if (typeof renderMaps === 'function') renderMaps(); }, 50);
-            } 
-            else if (tabName === 'profile') {
-                document.body.classList.add('mobile-show-profile');
-                btnProf.classList.add('active');
-                document.getElementById('mobile-top-title').innerText = "L'Araignée";
-                if (typeof switchProfileTab === 'function') switchProfileTab('posts');
-                if(mobileSort) mobileSort.style.display = 'none';
-                if(mobileSort && mobileSort.parentNode.classList.contains('custom-select-wrapper')) mobileSort.parentNode.style.display = 'none';
-                document.getElementById('mainContent')?.scrollTo(0, 0);
-            } 
-            else {
-                // Communauté par défaut
-                btnCom.classList.add('active');
-                document.getElementById('mobile-top-title').innerText = "L'Araignée";
-                if(mobileSort) {
-                    if(mobileSort.parentNode.classList.contains('custom-select-wrapper')) {
-                        mobileSort.parentNode.style.display = 'inline-block';
-                        mobileSort.style.display = 'none'; 
-                    } else {
-                        mobileSort.style.display = 'block';
-                    }
-                }
-                document.getElementById('chat-feed')?.scrollTo(0, 0);
-            }
-        }
-
-        // On attache les clics
-        btnCom.addEventListener('click', () => switchTab('community'));
-        btnSim.addEventListener('click', () => switchTab('simulator'));
-        btnProf.addEventListener('click', () => switchTab('profile'));
-        btnQuest.addEventListener('click', () => switchTab('questions'));
-
-        // Par défaut sur mobile : Communauté
-        if (window.innerWidth <= 768) switchTab('community');
-    }
-    
-    document.addEventListener('DOMContentLoaded', initMobileNav);
-
-    let _resizeTimer;
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 768) {
-            document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
-        }
-        clearTimeout(_resizeTimer);
-        _resizeTimer = setTimeout(() => {
-            if (typeof renderMaps === 'function') renderMaps();
-        }, 200);
-    });
-})();
-
-
 window.openMobileComposer = function() {
     window.mainReplyTarget = null;
     const textarea = document.getElementById('post-text');
@@ -8089,20 +8004,22 @@ window.resetNavBars = function() {
     setTimeout(window.resetNavBars, 150);
 })();
 	
-// --- GESTION DU SWIPE TWITTER (V4 - Glissement fluide & Scroll Sécurisé) ---
-(function initTwitterSwipe() {
+// ── GESTION UNIFIÉE DES 4 ONGLETS (Clics + Swipe Fluide) ──
+(function initMobileSystem() {
     if (window.innerWidth > 768) return;
+    
+    // Nettoyage des anciennes classes
     document.body.classList.add('twitter-swipe-enabled');
     document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
 
-    const profileSection = document.getElementById('mobile-profile-section');
-    const mainContent = document.getElementById('mainContent');
+    // Récupération des 4 sections principales
+    const questionsSection = document.getElementById('mobile-questions-section');
     const communitySidebar = document.getElementById('communitySidebar');
     const communityFooter = document.getElementById('communityFooter');
+    const mainContent = document.getElementById('mainContent');
+    const profileSection = document.getElementById('mobile-profile-section');
     
-    // NOUVEAU : On récupère la section Questions
-    const questionsSection = document.getElementById('mobile-questions-section');
-    
+    // Encapsulation du Profil pour le swipe (si pas déjà fait)
     let profileWrapper = document.getElementById('profileWrapper');
     if (profileSection && mainContent && !profileWrapper) {
         profileWrapper = document.createElement('div');
@@ -8112,27 +8029,26 @@ window.resetNavBars = function() {
         container.appendChild(profileSection);
         profileWrapper.appendChild(container);
         mainContent.parentNode.insertBefore(profileWrapper, mainContent.nextSibling);
-        if (typeof window.attachSmoothScroll === 'function') {
-            window.attachSmoothScroll(profileWrapper);
-        }
+        if (typeof window.attachSmoothScroll === 'function') window.attachSmoothScroll(profileWrapper);
     }
 
-    // Le tableau contient maintenant les 4 onglets, dans le MÊME ORDRE que les boutons HTML !
+    // Définition de l'ordre exact : 0:Questions, 1:Communauté, 2:Simulateur, 3:Profil
     const panels = [
         [questionsSection],
         [communitySidebar, communityFooter],
         [mainContent],
         [profileWrapper]
     ];
-    let currentTabIndex = 1; // 1 = Communauté (onglet par défaut au lancement)
+    
+    let currentTabIndex = 1; // 1 = Communauté par défaut
 
-    // CLONAGE DE LA BARRE DU BAS
+    // Remplacement propre de la barre de navigation pour éviter les vieux clics
     let bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
         let newBottomNav = bottomNav.cloneNode(true);
         bottomNav.parentNode.replaceChild(newBottomNav, bottomNav);
-        const newNavButtons = newBottomNav.querySelectorAll('button');
-        newNavButtons.forEach((btn, index) => {
+        const navButtons = newBottomNav.querySelectorAll('button');
+        navButtons.forEach((btn, index) => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 animateToTab(index);
@@ -8140,19 +8056,19 @@ window.resetNavBars = function() {
         });
     }
 
-    // VARIABLES DES BARRES À MASQUER
-    const activeBottomNav = document.querySelector('.bottom-nav');
     const topBar = document.getElementById('mobile-feed-header');
     const topLogo = document.getElementById('mobile-top-logo');
-    if (activeBottomNav) activeBottomNav.style.transition = 'transform 0.3s ease-in-out';
     if (topBar) topBar.style.transition = 'transform 0.3s ease-in-out';
     if (topLogo) topLogo.style.transition = 'transform 0.3s ease-in-out';
 
     let initialNavResetDone = false;
 
-    function animateToTab(index) {
+    // Fonction de transition fluide
+    window.animateToTab = function(index) {
+        if (index < 0 || index >= panels.length) return;
         currentTabIndex = index;
         const offset = -index * 100;
+        
         panels.forEach((group) => {
             group.forEach(p => {
                 if (p) {
@@ -8162,47 +8078,44 @@ window.resetNavBars = function() {
             });
         });
 
-        // Mise à jour des classes actives sur les 4 boutons
+        // Mise à jour visuelle des boutons
         const tabs = ['questions', 'community', 'simulator', 'profile'];
-        const navButtons = document.querySelectorAll('.bottom-nav button');
-        navButtons.forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.bottom-nav button').forEach(btn => btn.classList.remove('active'));
         const targetBtn = document.querySelector(`.bottom-nav button[data-tab="${tabs[index]}"]`);
         if (targetBtn) targetBtn.classList.add('active');
 
-        // Mise à jour du Titre en haut
+        // Titre du haut
         const topTitle = document.getElementById('mobile-top-title');
         const titles = ["L'Araignée - Profiling", "L'Araignée", "Simulateur", "Mon Profil"];
         if (topTitle) topTitle.innerText = titles[index];
 
-        // Chargement différé du Simulateur (qui est maintenant à l'index 2 !)
-        if (index === 2 && typeof renderMaps === 'function') {
-            setTimeout(renderMaps, 300);
+        // Sélecteur de Tri (visible Uniquement sur Communauté)
+        const mobileSort = document.getElementById('mobileFeedSortSelect');
+        if (mobileSort) {
+             if(mobileSort.parentNode.classList.contains('custom-select-wrapper')) {
+                 mobileSort.parentNode.style.display = (index === 1) ? 'inline-block' : 'none';
+             } else {
+                 mobileSort.style.display = (index === 1) ? 'block' : 'none';
+             }
         }
 
-        // Affichage des barres pour la Communauté (Index 1 !)
-        if (typeof window.resetNavBars === 'function') {
-            if (!initialNavResetDone && index === 1) { 
-                window.resetNavBars();
-                initialNavResetDone = true;
-            }
-        }
+        // Actions spécifiques au chargement d'un onglet
+        if (index === 2 && typeof renderMaps === 'function') setTimeout(renderMaps, 300);
+        if (index === 3 && typeof window.switchProfileTab === 'function') window.switchProfileTab('posts');
         
-        // Chargement du Profil (Index 3 !)
-        if (index === 3 && typeof window.switchProfileTab === 'function') {
-            window.switchProfileTab('posts');
+        if (typeof window.resetNavBars === 'function' && !initialNavResetDone && index === 1) { 
+            window.resetNavBars();
+            initialNavResetDone = true;
         }
-    }
-    
-    // On lance l'onglet par défaut (Communauté = index 1)
+    };
+
+    // Au lancement, on centre sur la Communauté
     animateToTab(1);
 
+    // --- GESTION DU SWIPE TACTILE ---
     let startX = 0, startY = 0, currentX = 0;
-// --- Le reste de ton code avec 'touchstart', 'touchmove', 'touchend' ne change pas ---
-
-let isSwiping = false, isHorizontalSwipe = null;
-
-// Modifiez le seuil ici (ex: 8% au lieu de 15%) pour un déclenchement très facile
-const swipeThreshold = window.innerWidth * 0.08;
+    let isSwiping = false, isHorizontalSwipe = null;
+    const swipeThreshold = window.innerWidth * 0.08;
 
     document.addEventListener('touchstart', (e) => {
         if (window.innerWidth > 768) return;
@@ -8210,13 +8123,13 @@ const swipeThreshold = window.innerWidth * 0.08;
             e.target.closest('input[type=range]') || document.body.classList.contains('mobile-composer-open') || 
             e.target.closest('.maps-grid') || e.target.closest('.chart-card') || 
             e.target.closest('.data-table-card')) return;
-
+            
         let el = e.target;
         while (el && el !== document.body) {
             if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
             el = el.parentElement;
         }
-
+        
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         isSwiping = true;
@@ -8225,23 +8138,17 @@ const swipeThreshold = window.innerWidth * 0.08;
 
     document.addEventListener('touchmove', (e) => {
         if (!isSwiping) return;
-
         currentX = e.touches[0].clientX;
         const deltaX = currentX - startX;
         const deltaY = e.touches[0].clientY - startY;
-
+        
         if (isHorizontalSwipe === null) {
-            if (Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-                isHorizontalSwipe = true;
-            } else {
-                isHorizontalSwipe = false;
-                isSwiping = false;
-                return;
-            }
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) isHorizontalSwipe = true;
+            else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) isHorizontalSwipe = false;
         }
-
         if (!isHorizontalSwipe) return;
-
+        
+        // Résistance élastique si on est au premier ou dernier onglet
         if ((currentTabIndex === 0 && deltaX > 0) || (currentTabIndex === panels.length - 1 && deltaX < 0)) {
             const resistDelta = deltaX * 0.25;
             panels.forEach(group => {
@@ -8254,7 +8161,8 @@ const swipeThreshold = window.innerWidth * 0.08;
             });
             return;
         }
-
+        
+        // Mouvement normal
         panels.forEach(group => {
             group.forEach(p => {
                 if (p) {
@@ -8268,14 +8176,31 @@ const swipeThreshold = window.innerWidth * 0.08;
     document.addEventListener('touchend', (e) => {
         if (!isSwiping || !isHorizontalSwipe) return;
         isSwiping = false;
-
         const deltaX = currentX - startX;
         if (Math.abs(deltaX) > swipeThreshold) {
             if (deltaX < 0 && currentTabIndex < panels.length - 1) currentTabIndex++; 
-            else if (deltaX > 0 && currentTabIndex > 0) currentTabIndex--; 
+            else if (deltaX > 0 && currentTabIndex > 0) currentTabIndex--;
         }
         animateToTab(currentTabIndex);
     });
+
+    // Remise à zéro si l'utilisateur bascule sur un écran PC
+    let _resizeTimer;
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            document.body.classList.remove('twitter-swipe-enabled');
+            // Remet tout en place pour le PC
+            panels.forEach(group => group.forEach(p => { if (p) p.style.transform = 'none'; }));
+        } else {
+            document.body.classList.add('twitter-swipe-enabled');
+            animateToTab(currentTabIndex);
+        }
+        clearTimeout(_resizeTimer);
+        _resizeTimer = setTimeout(() => {
+            if (typeof renderMaps === 'function') renderMaps();
+        }, 200);
+    });
+
 })();
 
 // --- DICTIONNAIRE DES BADGES SVGs MINIMALISTES ---
