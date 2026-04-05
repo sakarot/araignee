@@ -2502,7 +2502,7 @@ body.mobile-show-questions #communitySidebar { display: none !important; }
             <h2 style="font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--text);">Tes Badges !</h2>
             <div id="q-badges-display" style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 20px 0;"></div>
             <p style="color: var(--text-dim); font-size: 13px;">Ils sont désormais visibles à côté de ton pseudo.</p>
-            <button id="btn-save-badges" class="minimal-gif-btn2" onclick="saveBadgesToProfile()">Sauvegarder</button>
+            <button id="btn-save-badges" class="minimal-gif-btn2" style="display: none;" onclick="saveBadgesToProfile()">Sauvegarder</button>
             <div id="q-save-msg" style="font-size: 12px; color: var(--EELV); display: none;">Sauvegardé avec succès !</div>
 			<button onclick="window.startQuiz()" style="margin-top: 20px; padding: 10px 20px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
     Recommencer le test
@@ -2688,6 +2688,8 @@ body.mobile-show-questions #communitySidebar { display: none !important; }
 <div class="map-tooltip" id="globalTooltip"></div>
 <div class="poll-tooltip" id="globalPollTooltip"></div>
 <script>
+window.currentQuizSaved = false; // Mémorise si le quiz a déjà été sauvegardé
+
 
 const ELECTIONS_FRANCE = [
     { id: 'leg_2024', nom: 'Législatives 2024', date: '2024-06-30' },
@@ -8121,6 +8123,8 @@ let userScores = {}; // Points accumulés pour chaque extrême (ex: "constructiv
 let earnedBadges = []; // Badges finaux
 
 window.startQuiz = function() {
+    window.currentQuizSaved = false; // Nouveau quiz = pas encore sauvegardé
+
     if (!currentUser) {
         alert("Connecte-toi pour passer le test et sauvegarder tes badges !");
         return;
@@ -8220,14 +8224,17 @@ window.answerQuestion = function(score) {
     showQuestion();
 };
 
-window.finishQuiz = function() {
-    // AJOUTEZ CETTE LIGNE TOUT EN HAUT :
-    window.isTakingQuiz = false; 
-
-    document.getElementById('q-container').style.display = 'none';
-    document.getElementById('q-result').style.display = 'flex';
+window.finishQuiz = function() { 
+    window.isTakingQuiz = false;
+    document.getElementById('q-container').style.display = 'none'; 
+    document.getElementById('q-result').style.display = 'flex'; 
     
-    document.getElementById('btn-save-badges').style.display = 'inline-block';
+    // NOUVEAU : On n'affiche le bouton QUE si le quiz actuel n'a pas été sauvegardé
+    if (!window.currentQuizSaved) {
+        document.getElementById('btn-save-badges').style.display = 'inline-block';
+    } else {
+        document.getElementById('btn-save-badges').style.display = 'none';
+    }
 
     let mainBadge = null;
     let maxScore = -1;
@@ -8332,19 +8339,19 @@ window.finishQuiz = function() {
 window.saveBadgesToProfile = function() { 
     if (!currentUser) return; 
     
-    // Sauvegarde dans Firestore 
     db.collection("users").doc(currentUser.uid).set({ badges: earnedBadges }, { merge: true }).then(() => { 
         document.getElementById('q-save-msg').style.display = 'block'; 
         
-        // NOUVEAU : On cache le bouton Sauvegarder pour empêcher de cliquer plusieurs fois
+        // NOUVEAU : On valide que le quiz est sauvegardé et on cache le bouton
+        window.currentQuizSaved = true; 
         document.getElementById('btn-save-badges').style.display = 'none';
 
-        // Cache le message et retourne sur l'onglet Profil après 1.5 secondes 
         setTimeout(() => { 
-            document.getElementById('q-save-msg').style.display = 'none'; 
+            document.getElementById('q-save-msg').style.display = 'none';
         }, 1500); 
     }); 
 };
+
 
 
 window.generateBadgesHtml = function(badgesArray) {
