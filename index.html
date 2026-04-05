@@ -8299,13 +8299,20 @@ window.addEventListener('DOMContentLoaded', function() {
         
         let currentTabIndex = 1; 
 
-        // 🚨 MAGIE : Force l'alignement JS pour contourner tout bug de ton ancien CSS
         panels.forEach((group, index) => {
             group.forEach(p => {
                 if (p) {
+                    p.style.setProperty('position', 'absolute', 'important');
+                    p.style.setProperty('top', '0', 'important');
+                    p.style.setProperty('left', `${index * 100}vw`, 'important');
+                    p.style.setProperty('width', '100vw', 'important');
+                    p.style.setProperty('height', '100dvh', 'important'); // S'adapte à l'écran mobile
+                    p.style.setProperty('margin', '0', 'important');
+                    p.style.setProperty('box-sizing', 'border-box', 'important'); // EMPÊCHE LE DÉBORDEMENT ET LE SWIPE TROP LOIN
                     p.style.setProperty('display', 'block', 'important');
                     p.style.setProperty('visibility', 'visible', 'important');
-                    p.style.setProperty('left', `${index * 100}vw`, 'important');
+                    p.style.setProperty('overflow-y', 'auto', 'important');
+                    p.style.setProperty('overflow-x', 'hidden', 'important');
                 }
             });
         });
