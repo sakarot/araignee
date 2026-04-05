@@ -1996,15 +1996,6 @@ body.light-mode #mobile-feed-header {
 
     /* Forcer l'affichage de l'intérieur du profil */
     body.twitter-swipe-enabled #mobile-profile-section { display: flex !important; flex-direction: column; width: 100% !important; background: transparent !important; border: none !important; padding: 0 !important; margin: 0 !important; }
-    
-        /* Le footer de saisie de la communauté s'attache en bas de l'onglet */
-    body.twitter-swipe-enabled #communityFooter {
-        position: fixed !important;
-        bottom: 60px !important;
-        width: 100vw !important;
-        left: 100vw; /* <--- TRÈS IMPORTANT : on le place avec la communauté à 100vw */
-        z-index: 10;
-    }
 
 
     body.twitter-swipe-enabled .site-header { display: none !important; }
@@ -2022,15 +2013,7 @@ body.light-mode #mobile-feed-header {
     body.twitter-swipe-enabled #profileWrapper #desktop-history-btn { display: none !important; }
     body.twitter-swipe-enabled #profileWrapper #community-leaderboard { align-items: center; }
 	
-/* 1. Zone de saisie : On la pousse vers le bas avec une marge négative plafonnée à 60px */
-body.twitter-swipe-enabled #communityFooter {
-    bottom: 60px !important;
-    /* Descend au maximum de 60px, ce qui l'arrête très exactement au fond de l'écran (0px) */
-    margin-bottom: calc(-1 * min(var(--bottom-offset, 0px), 60px)) !important;
-    
-    /* TRÈS IMPORTANT : On enlève le transform pour ne plus bloquer le swipe horizontal JS */
-    transform: none; 
-}
+
 
 /* 2. Bouton + : Positionné plus haut, il descend de 60px max pour garder son écart parfait */
 #mobile-fab-post {
@@ -2047,6 +2030,14 @@ body.twitter-swipe-enabled #communityFooter {
 #mobile-fab-post:active { 
     transform: scale(0.9) !important; 
 }
+/* Masquer visuellement la barre de scroll de l'onglet Profil (mobile) */
+    body.twitter-swipe-enabled #profileWrapper {
+        scrollbar-width: none; /* Pour Firefox */
+        -ms-overflow-style: none; /* Pour IE et Edge */
+    }
+    body.twitter-swipe-enabled #profileWrapper::-webkit-scrollbar {
+        display: none; /* Pour Chrome, Safari et Opera */
+    }
 }
 
 /* --- QUESTIONNAIRE --- */
@@ -7886,323 +7877,6 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
     return html;
 };
 
-(function initMobileScroll() {
-    let lastScrollY = window.scrollY || 0;
-    let topBarOffset = 0;
-    let bottomBarOffset = 0;
-    let ticking = false;
-
-    // VITESSE D'ANIMATION (0.4 = beaucoup plus lent et doux que le doigt)
-    const SCROLL_SPEED = 0.4;
-
-    function updateBars() {
-        const topBar = document.getElementById('mobile-feed-header');
-        const bottomBar = document.querySelector('.bottom-nav');
-        const topLogo = document.getElementById('mobile-top-logo');
-        
-        if (topBar) {
-            topBar.style.setProperty('transition', 'none', 'important');
-            topBar.style.setProperty('transform', `translateY(${topBarOffset}px)`, 'important');
-        }
-        
-        if (topLogo) {
-            topLogo.style.setProperty('transition', 'none', 'important');
-            topLogo.style.setProperty('transform', `translateX(-50%) translateY(${topBarOffset}px)`, 'important');
-        }
-
-        if (bottomBar) {
-            if (document.body.classList.contains('mobile-composer-open')) {
-                bottomBar.style.setProperty('transition', 'transform 0.3s ease-in-out', 'important');
-                bottomBar.style.setProperty('transform', 'translateY(100%)', 'important');
-            } else {
-                bottomBar.style.setProperty('transition', 'none', 'important');
-                // Utilisation de translate3d pour forcer l'accélération matérielle (Evite les bugs Safari)
-                bottomBar.style.setProperty('transform', `translate3d(0, ${bottomBarOffset}px, 0)`, 'important');
-            }
-        }
-// On envoie simplement la valeur exacte sans limite artificielle
-    document.documentElement.style.setProperty('--bottom-offset', `${bottomBarOffset}px`);
-    ticking = false;
-    }
-
-    function handleScroll(e) {
-        if (window.innerWidth > 768) return;
-        if (document.body.classList.contains('mobile-composer-open')) return;
-
-        let currentScrollY = window.scrollY;
-        if (e.target && e.target.scrollTop !== undefined) {
-            currentScrollY = e.target.scrollTop;
-        }
-        if (currentScrollY < 0) currentScrollY = 0;
-
-        const topBar = document.getElementById('mobile-feed-header');
-        const bottomBar = document.querySelector('.bottom-nav');
-        
-        const topBarHeight = topBar ? topBar.offsetHeight : 60;
-        const bottomBarHeight = bottomBar ? bottomBar.offsetHeight + (parseInt(window.getComputedStyle(bottomBar).paddingBottom) || 0) : 80;
-
-        if (currentScrollY <= 0) {
-            topBarOffset = 0; bottomBarOffset = 0;
-            lastScrollY = currentScrollY;
-            if (!ticking) { window.requestAnimationFrame(updateBars); ticking = true; }
-            return;
-        }
-
-       let rawDelta = currentScrollY - lastScrollY;
-        
-        // PROTECTION : Ignore les bonds géants causés par le changement d'onglet
-        // (Un décalage > 150px en un instant signifie qu'on a changé de conteneur de scroll)
-        if (Math.abs(rawDelta) > 150) {
-            lastScrollY = currentScrollY;
-            return;
-        }
-
-        const deltaY = rawDelta * SCROLL_SPEED;
-        // -----------------------------
-        
-        topBarOffset -= deltaY;
-        bottomBarOffset += deltaY;
-
-        if (topBarOffset > 0) topBarOffset = 0;
-        if (topBarOffset < -topBarHeight) topBarOffset = -topBarHeight;
-        
-        if (bottomBarOffset < 0) bottomBarOffset = 0;
-        if (bottomBarOffset > bottomBarHeight) bottomBarOffset = bottomBarHeight;
-
-        lastScrollY = currentScrollY;
-
-        if (!ticking) { window.requestAnimationFrame(updateBars); ticking = true; }
-    }
-
-    const chatFeed = document.getElementById('chat-feed');
-    if (chatFeed) chatFeed.addEventListener('scroll', handleScroll, { passive: true });
-    const mainContent = document.getElementById('mainContent');
-    if (mainContent) mainContent.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    window.resetNavBars = function() {
-        topBarOffset = 0; bottomBarOffset = 0; lastScrollY = 0; 
-        if (!ticking) { window.requestAnimationFrame(updateBars); ticking = true; }
-    };
-
-window.resetNavBars = function() {
-        topBarOffset = 0;
-        bottomBarOffset = 0;
-        lastScrollY = 0;
-        if (!ticking) {
-            window.requestAnimationFrame(updateBars);
-            ticking = true;
-        }
-    };
-    
-    // NOUVEAU : Permet d'attacher le système fluide aux éléments créés en JS
-    window.attachSmoothScroll = function(element) {
-        if (element) element.addEventListener('scroll', handleScroll, { passive: true });
-    };
-
-    // FORCE L'AFFICHAGE COMPLET AU CHARGEMENT (Règle le bug Safari du premier lancement)
-    setTimeout(window.resetNavBars, 150);
-})();
-	
-// ── GESTION UNIFIÉE DES 4 ONGLETS (Clics + Swipe Fluide) ──
-(function initMobileSystem() {
-    if (window.innerWidth > 768) return;
-    
-    // Nettoyage des anciennes classes
-    document.body.classList.add('twitter-swipe-enabled');
-    document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
-
-    // Récupération des 4 sections principales
-    const questionsSection = document.getElementById('mobile-questions-section');
-    const communitySidebar = document.getElementById('communitySidebar');
-    const communityFooter = document.getElementById('communityFooter');
-    const mainContent = document.getElementById('mainContent');
-    const profileSection = document.getElementById('mobile-profile-section');
-    
-    // Encapsulation du Profil pour le swipe (si pas déjà fait)
-    let profileWrapper = document.getElementById('profileWrapper');
-    if (profileSection && mainContent && !profileWrapper) {
-        profileWrapper = document.createElement('div');
-        profileWrapper.id = 'profileWrapper';
-        const container = document.createElement('div');
-        container.className = 'container';
-        container.appendChild(profileSection);
-        profileWrapper.appendChild(container);
-        mainContent.parentNode.insertBefore(profileWrapper, mainContent.nextSibling);
-        if (typeof window.attachSmoothScroll === 'function') window.attachSmoothScroll(profileWrapper);
-    }
-
-    // Définition de l'ordre exact : 0:Questions, 1:Communauté, 2:Simulateur, 3:Profil
-    const panels = [
-        [questionsSection],
-        [communitySidebar, communityFooter],
-        [mainContent],
-        [profileWrapper]
-    ];
-    
-    let currentTabIndex = 1; // 1 = Communauté par défaut
-
-    // Remplacement propre de la barre de navigation pour éviter les vieux clics
-    let bottomNav = document.querySelector('.bottom-nav');
-    if (bottomNav) {
-        let newBottomNav = bottomNav.cloneNode(true);
-        bottomNav.parentNode.replaceChild(newBottomNav, bottomNav);
-        const navButtons = newBottomNav.querySelectorAll('button');
-        navButtons.forEach((btn, index) => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                animateToTab(index);
-            });
-        });
-    }
-
-    const topBar = document.getElementById('mobile-feed-header');
-    const topLogo = document.getElementById('mobile-top-logo');
-    if (topBar) topBar.style.transition = 'transform 0.3s ease-in-out';
-    if (topLogo) topLogo.style.transition = 'transform 0.3s ease-in-out';
-
-    let initialNavResetDone = false;
-
-    // Fonction de transition fluide
-    window.animateToTab = function(index) {
-        if (index < 0 || index >= panels.length) return;
-        currentTabIndex = index;
-        const offset = -index * 100;
-        
-        panels.forEach((group) => {
-            group.forEach(p => {
-                if (p) {
-                    p.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
-                    p.style.transform = `translate3d(${offset}vw, 0, 0)`;
-                }
-            });
-        });
-
-        // Mise à jour visuelle des boutons
-        const tabs = ['questions', 'community', 'simulator', 'profile'];
-        document.querySelectorAll('.bottom-nav button').forEach(btn => btn.classList.remove('active'));
-        const targetBtn = document.querySelector(`.bottom-nav button[data-tab="${tabs[index]}"]`);
-        if (targetBtn) targetBtn.classList.add('active');
-
-        // Titre du haut
-        const topTitle = document.getElementById('mobile-top-title');
-        const titles = ["L'Araignée - Profiling", "L'Araignée", "Simulateur", "Mon Profil"];
-        if (topTitle) topTitle.innerText = titles[index];
-
-        // Sélecteur de Tri (visible Uniquement sur Communauté)
-        const mobileSort = document.getElementById('mobileFeedSortSelect');
-        if (mobileSort) {
-             if(mobileSort.parentNode.classList.contains('custom-select-wrapper')) {
-                 mobileSort.parentNode.style.display = (index === 1) ? 'inline-block' : 'none';
-             } else {
-                 mobileSort.style.display = (index === 1) ? 'block' : 'none';
-             }
-        }
-
-        // Actions spécifiques au chargement d'un onglet
-        if (index === 2 && typeof renderMaps === 'function') setTimeout(renderMaps, 300);
-        if (index === 3 && typeof window.switchProfileTab === 'function') window.switchProfileTab('posts');
-        
-        if (typeof window.resetNavBars === 'function' && !initialNavResetDone && index === 1) { 
-            window.resetNavBars();
-            initialNavResetDone = true;
-        }
-    };
-
-    // Au lancement, on centre sur la Communauté
-    animateToTab(1);
-
-    // --- GESTION DU SWIPE TACTILE ---
-    let startX = 0, startY = 0, currentX = 0;
-    let isSwiping = false, isHorizontalSwipe = null;
-    const swipeThreshold = window.innerWidth * 0.08;
-
-    document.addEventListener('touchstart', (e) => {
-        if (window.innerWidth > 768) return;
-        if (e.target.closest('.user-dropdown') || e.target.closest('.friends-dropdown') || 
-            e.target.closest('input[type=range]') || document.body.classList.contains('mobile-composer-open') || 
-            e.target.closest('.maps-grid') || e.target.closest('.chart-card') || 
-            e.target.closest('.data-table-card')) return;
-            
-        let el = e.target;
-        while (el && el !== document.body) {
-            if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
-            el = el.parentElement;
-        }
-        
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        isSwiping = true;
-        isHorizontalSwipe = null;
-    }, { passive: true });
-
-    document.addEventListener('touchmove', (e) => {
-        if (!isSwiping) return;
-        currentX = e.touches[0].clientX;
-        const deltaX = currentX - startX;
-        const deltaY = e.touches[0].clientY - startY;
-        
-        if (isHorizontalSwipe === null) {
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) isHorizontalSwipe = true;
-            else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) isHorizontalSwipe = false;
-        }
-        if (!isHorizontalSwipe) return;
-        
-        // Résistance élastique si on est au premier ou dernier onglet
-        if ((currentTabIndex === 0 && deltaX > 0) || (currentTabIndex === panels.length - 1 && deltaX < 0)) {
-            const resistDelta = deltaX * 0.25;
-            panels.forEach(group => {
-                group.forEach(p => {
-                    if (p) {
-                        p.style.transition = 'none';
-                        p.style.transform = `translate3d(calc(${-currentTabIndex * 100}vw + ${resistDelta}px), 0, 0)`;
-                    }
-                });
-            });
-            return;
-        }
-        
-        // Mouvement normal
-        panels.forEach(group => {
-            group.forEach(p => {
-                if (p) {
-                    p.style.transition = 'none';
-                    p.style.transform = `translate3d(calc(${-currentTabIndex * 100}vw + ${deltaX}px), 0, 0)`;
-                }
-            });
-        });
-    }, { passive: true });
-
-    document.addEventListener('touchend', (e) => {
-        if (!isSwiping || !isHorizontalSwipe) return;
-        isSwiping = false;
-        const deltaX = currentX - startX;
-        if (Math.abs(deltaX) > swipeThreshold) {
-            if (deltaX < 0 && currentTabIndex < panels.length - 1) currentTabIndex++; 
-            else if (deltaX > 0 && currentTabIndex > 0) currentTabIndex--;
-        }
-        animateToTab(currentTabIndex);
-    });
-
-    // Remise à zéro si l'utilisateur bascule sur un écran PC
-    let _resizeTimer;
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 768) {
-            document.body.classList.remove('twitter-swipe-enabled');
-            // Remet tout en place pour le PC
-            panels.forEach(group => group.forEach(p => { if (p) p.style.transform = 'none'; }));
-        } else {
-            document.body.classList.add('twitter-swipe-enabled');
-            animateToTab(currentTabIndex);
-        }
-        clearTimeout(_resizeTimer);
-        _resizeTimer = setTimeout(() => {
-            if (typeof renderMaps === 'function') renderMaps();
-        }, 200);
-    });
-
-})();
-
 // --- DICTIONNAIRE DES BADGES SVGs MINIMALISTES ---
 const BADGE_ICONS = {
     'anarchisme': '<svg viewBox="0 0 24 24" class="user-badge-svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 4l-5 14h2l1.5-4.5h3L15 18h2L12 4z" fill="currentColor"/><path d="M8.5 13.5h7" stroke="currentColor" stroke-width="2"/></svg>',
@@ -8472,6 +8146,320 @@ window.generateBadgesHtml = function(badgesArray) {
 };
 
 
+(function initMobileScroll() {
+    let lastScrollY = window.scrollY || 0;
+    let topBarOffset = 0;
+    let bottomBarOffset = 0;
+    let ticking = false;
+
+    // VITESSE D'ANIMATION
+    const SCROLL_SPEED = 0.4;
+
+    function updateBars() {
+        const topBar = document.getElementById('mobile-feed-header');
+        const bottomBar = document.querySelector('.bottom-nav');
+        const topLogo = document.getElementById('mobile-top-logo');
+        
+        if (topBar) {
+            topBar.style.setProperty('transition', 'none', 'important');
+            topBar.style.setProperty('transform', `translateY(${topBarOffset}px)`, 'important');
+        }
+        
+        if (topLogo) {
+            topLogo.style.setProperty('transition', 'none', 'important');
+            topLogo.style.setProperty('transform', `translateX(-50%) translateY(${topBarOffset}px)`, 'important');
+        }
+
+        if (bottomBar) {
+            if (document.body.classList.contains('mobile-composer-open')) {
+                bottomBar.style.setProperty('transition', 'transform 0.3s ease-in-out', 'important');
+                bottomBar.style.setProperty('transform', 'translateY(100%)', 'important');
+            } else {
+                bottomBar.style.setProperty('transition', 'none', 'important');
+                bottomBar.style.setProperty('transform', `translate3d(0, ${bottomBarOffset}px, 0)`, 'important');
+            }
+        }
+        document.documentElement.style.setProperty('--bottom-offset', `${bottomBarOffset}px`);
+        ticking = false;
+    }
+
+    function handleScroll(e) {
+        if (window.innerWidth > 768) return;
+        if (document.body.classList.contains('mobile-composer-open')) return;
+
+        let currentScrollY = window.scrollY;
+        if (e.target && e.target.scrollTop !== undefined) {
+            currentScrollY = e.target.scrollTop;
+        }
+        if (currentScrollY < 0) currentScrollY = 0;
+
+        const topBar = document.getElementById('mobile-feed-header');
+        const bottomBar = document.querySelector('.bottom-nav');
+        
+        const topBarHeight = topBar ? topBar.offsetHeight : 60;
+        const bottomBarHeight = bottomBar ? bottomBar.offsetHeight + (parseInt(window.getComputedStyle(bottomBar).paddingBottom) || 0) : 80;
+
+        if (currentScrollY <= 0) {
+            topBarOffset = 0; bottomBarOffset = 0;
+            lastScrollY = currentScrollY;
+            if (!ticking) { window.requestAnimationFrame(updateBars); ticking = true; }
+            return;
+        }
+
+       let rawDelta = currentScrollY - lastScrollY;
+        
+        if (Math.abs(rawDelta) > 150) {
+            lastScrollY = currentScrollY;
+            return;
+        }
+
+        const deltaY = rawDelta * SCROLL_SPEED;
+        
+        topBarOffset -= deltaY;
+        bottomBarOffset += deltaY;
+
+        if (topBarOffset > 0) topBarOffset = 0;
+        if (topBarOffset < -topBarHeight) topBarOffset = -topBarHeight;
+        
+        if (bottomBarOffset < 0) bottomBarOffset = 0;
+        if (bottomBarOffset > bottomBarHeight) bottomBarOffset = bottomBarHeight;
+
+        lastScrollY = currentScrollY;
+
+        if (!ticking) { window.requestAnimationFrame(updateBars); ticking = true; }
+    }
+
+    const chatFeed = document.getElementById('chat-feed');
+    if (chatFeed) chatFeed.addEventListener('scroll', handleScroll, { passive: true });
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent) mainContent.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // NOUVEAU : Ajout de l'écouteur de scroll pour le 4ème onglet
+    const mobileQuestionsSection = document.getElementById('mobile-questions-section');
+    if (mobileQuestionsSection) mobileQuestionsSection.addEventListener('scroll', handleScroll, { passive: true });
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    window.resetNavBars = function() {
+        topBarOffset = 0;
+        bottomBarOffset = 0;
+        lastScrollY = 0;
+        if (!ticking) {
+            window.requestAnimationFrame(updateBars);
+            ticking = true;
+        }
+    };
+    
+    window.attachSmoothScroll = function(element) {
+        if (element) element.addEventListener('scroll', handleScroll, { passive: true });
+    };
+
+    setTimeout(window.resetNavBars, 150);
+})();
+	
+
+// --- GESTION DU SWIPE TWITTER (VERSION DÉFINITIVE BLINDÉE) ---
+window.addEventListener('DOMContentLoaded', function() {
+    
+    function initTwitterSwipe() {
+        if (window.innerWidth > 768) return;
+        // Évite de relancer l'initialisation si on redimensionne plusieurs fois
+        if (document.body.dataset.swipeInitialized) return;
+        document.body.dataset.swipeInitialized = "true";
+
+        document.body.classList.add('twitter-swipe-enabled');
+        document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
+
+        const mobileQuestionsSection = document.getElementById('mobile-questions-section');
+        const profileSection = document.getElementById('mobile-profile-section');
+        const mainContent = document.getElementById('mainContent');
+        const communitySidebar = document.getElementById('communitySidebar');
+        const communityFooter = document.getElementById('communityFooter');
+        let profileWrapper = document.getElementById('profileWrapper');
+        
+        if (profileSection && mainContent && !profileWrapper) {
+            profileWrapper = document.createElement('div');
+            profileWrapper.id = 'profileWrapper';
+            const container = document.createElement('div');
+            container.className = 'container';
+            container.appendChild(profileSection);
+            profileWrapper.appendChild(container);
+            mainContent.parentNode.insertBefore(profileWrapper, mainContent.nextSibling);
+            if (typeof window.attachSmoothScroll === 'function') {
+                window.attachSmoothScroll(profileWrapper);
+            }
+        }
+
+        const panels = [
+            [mobileQuestionsSection],            // Index 0 : Questions
+            [communitySidebar],                  // Index 1 : Communauté (sans le footer)
+            [mainContent],                       // Index 2 : Simulateur
+            [profileWrapper]                     // Index 3 : Profil
+        ];
+        
+        let currentTabIndex = 1; 
+
+        // 🚨 MAGIE : Force l'alignement JS pour contourner tout bug de ton ancien CSS
+        panels.forEach((group, index) => {
+            group.forEach(p => {
+                if (p) {
+                    p.style.setProperty('display', 'block', 'important');
+                    p.style.setProperty('visibility', 'visible', 'important');
+                    p.style.setProperty('left', `${index * 100}vw`, 'important');
+                }
+            });
+        });
+
+        // 🚨 ATTACHEMENT DIRECT ET FORCÉ DES CLICS
+        const navButtons = document.querySelectorAll('.bottom-nav button');
+        navButtons.forEach((btn, index) => {
+            btn.removeAttribute('onclick'); 
+            
+            // Écrase de force n'importe quelle autre action
+            btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                document.body.classList.remove('mobile-show-sim', 'mobile-show-profile', 'mobile-show-questions');
+                
+                const tabId = btn.getAttribute('data-tab');
+                let targetIndex = index;
+                if (tabId === 'questions') targetIndex = 0;
+                else if (tabId === 'community') targetIndex = 1;
+                else if (tabId === 'simulator') targetIndex = 2;
+                else if (tabId === 'profile') targetIndex = 3;
+                
+                if (targetIndex < 4) animateToTab(targetIndex);
+            };
+        });
+
+        const activeBottomNav = document.querySelector('.bottom-nav');
+        const topBar = document.getElementById('mobile-feed-header');
+        const topLogo = document.getElementById('mobile-top-logo');
+
+        if (activeBottomNav) activeBottomNav.style.transition = 'transform 0.3s ease-in-out';
+        if (topBar) topBar.style.transition = 'transform 0.3s ease-in-out';
+        if (topLogo) topLogo.style.transition = 'transform 0.3s ease-in-out';
+        let initialNavResetDone = false;
+
+        function animateToTab(index) {
+            currentTabIndex = index;
+            const offset = -index * 100;
+            panels.forEach((group) => {
+                group.forEach(p => {
+                    if (p) {
+                        p.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)'; 
+                        p.style.transform = `translate3d(${offset}vw, 0, 0)`;
+                    }
+                });
+            });
+
+            const tabs = ['questions', 'community', 'simulator', 'profile'];
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            
+            const targetBtn = document.querySelector(`.bottom-nav button[data-tab="${tabs[index]}"]`);
+            if (targetBtn) targetBtn.classList.add('active');
+
+            const topTitle = document.getElementById('mobile-top-title');
+            const titles = ["Questions", "L'Araignée", "Simulateur", "Mon Profil"];
+            if (topTitle) topTitle.innerText = titles[index];
+            
+            if (index === 2 && typeof renderMaps === 'function') setTimeout(renderMaps, 300);
+            if (index === 3 && typeof window.switchProfileTab === 'function') window.switchProfileTab('posts');
+
+            if (typeof window.resetNavBars === 'function') {
+                if (!initialNavResetDone && index === 1) { 
+                    window.resetNavBars();
+                    initialNavResetDone = true;
+                }
+            }
+        }
+        
+        animateToTab(currentTabIndex);
+
+        let startX = 0, startY = 0, currentX = 0;
+        let isSwiping = false, isHorizontalSwipe = null;
+        const swipeThreshold = window.innerWidth * 0.08;
+
+        document.addEventListener('touchstart', (e) => {
+            if (window.innerWidth > 768) return;
+            if (e.target.closest('.user-dropdown') || e.target.closest('.friends-dropdown') || 
+                e.target.closest('input[type=range]') || document.body.classList.contains('mobile-composer-open') || 
+                e.target.closest('.maps-grid') || e.target.closest('.chart-card') || 
+                e.target.closest('.data-table-card')) return;
+
+            let el = e.target;
+            while (el && el !== document.body) {
+                if (el.scrollWidth > el.clientWidth && !el.classList.contains('page-wrapper')) return;
+                el = el.parentElement;
+            }
+
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            isSwiping = true;
+            isHorizontalSwipe = null;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isSwiping) return;
+
+            currentX = e.touches[0].clientX;
+            const deltaX = currentX - startX;
+            const deltaY = e.touches[0].clientY - startY;
+
+            if (isHorizontalSwipe === null) {
+                if (Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+                    isHorizontalSwipe = true;
+                } else {
+                    isHorizontalSwipe = false;
+                    isSwiping = false;
+                    return;
+                }
+            }
+
+            if (!isHorizontalSwipe) return;
+            if (e.cancelable) e.preventDefault();
+
+            if ((currentTabIndex === 0 && deltaX > 0) || (currentTabIndex === panels.length - 1 && deltaX < 0)) {
+                const resistDelta = deltaX * 0.25;
+                panels.forEach(group => {
+                    group.forEach(p => {
+                        if (p) {
+                            p.style.transition = 'none';
+                            p.style.transform = `translate3d(calc(${-currentTabIndex * 100}vw + ${resistDelta}px), 0, 0)`;
+                        }
+                    });
+                });
+                return;
+            }
+
+            panels.forEach(group => {
+                group.forEach(p => {
+                    if (p) {
+                        p.style.transition = 'none';
+                        p.style.transform = `translate3d(calc(${-currentTabIndex * 100}vw + ${deltaX}px), 0, 0)`;
+                    }
+                });
+            });
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            if (!isSwiping || !isHorizontalSwipe) return;
+            isSwiping = false;
+
+            const deltaX = currentX - startX;
+            if (Math.abs(deltaX) > swipeThreshold) {
+                if (deltaX < 0 && currentTabIndex < panels.length - 1) currentTabIndex++; 
+                else if (deltaX > 0 && currentTabIndex > 0) currentTabIndex--; 
+            }
+            animateToTab(currentTabIndex);
+        });
+    }
+
+    // 🚨 Exécute le script au démarrage ET si la taille de l'écran change (pour les tests sur PC)
+    initTwitterSwipe();
+    window.addEventListener('resize', initTwitterSwipe);
+});
 </script>
 <div id="mobile-menu-backdrop" onclick="closeAllMobileMenus()"></div>
 </body>
