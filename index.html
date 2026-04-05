@@ -612,6 +612,16 @@ body.light-mode .sticky-chat-footer {
   .comment-input-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 4px; padding: 6px; font-size: 10px; }
   .comment-input-row button { padding: 4px 12px; font-size: 10px; }
   
+  /* --- BADGES (Affichage à côté du pseudo) --- */
+.user-badge-svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+    margin-right: 4px;
+    vertical-align: text-bottom;
+    display: inline-block;
+    color: var(--accent); /* Couleur par défaut */
+}
   @media (max-width: 1024px) {
     .page-wrapper { flex-direction: column; }
     .community-sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); }
@@ -4305,11 +4315,15 @@ function renderFeed() {
 
     const isCommentOpen = window.openComments[postId] ? 'flex' : 'none';
     const cachedCommentsHtml = window.commentCache[postId] || '';
+	let badgesHtml = '';
+if (post.badges && post.badges.length > 0) {
+    badgesHtml = post.badges.map(b => BADGE_ICONS[b] || '').join('');
+}
 
     postEl.innerHTML = `
       <div class="post-header">
         <div style="display:flex; align-items:center;">
-            <span class="post-pseudo ${pc}" style="${colorStyle} cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile('${post.pseudo.replace(/'/g, "\\'")}')">${post.pseudo}</span>
+            <span class="post-pseudo ${pc}" style="${colorStyle} cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile('${post.pseudo.replace(/'/g, "\\'")}')">${badgesHtml} ${post.pseudo}</span>
             ${deleteBtnHtml}
         </div>
         <span class="post-time">${getRelativeTime(post.timestamp)}</span>
@@ -5611,12 +5625,16 @@ function buildCommentNodeHtml(c, allComments, isRoot, focusPath = [], focusId = 
     }
 
     let html = `<div class="comment-node-wrapper" style="${isRoot ? 'margin-bottom: 12px;' : ''}">`;
+	let badgesHtml = '';
+if (post.badges && post.badges.length > 0) {
+    badgesHtml = post.badges.map(b => BADGE_ICONS[b] || '').join('');
+}
 
     html += `
     <div id="comment-${c.id}" class="comment-card ${targetClass}" ${cardClickAttr}>
       <div class="post-header" style="margin-bottom: 4px;">
         <div style="display:flex; align-items:center; flex-wrap: wrap;">
-            <span class="post-pseudo ${pc}" style="${colorStyle} cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile('${c.pseudo.replace(/'/g, "\\'")}')">${c.pseudo}</span>
+            <span class="post-pseudo ${pc}" style="${colorStyle} cursor:pointer;" onclick="event.stopPropagation(); window.openUserProfile('${c.pseudo.replace(/'/g, "\\'")}')">${badgesHtml} ${post.pseudo}</span>
 			${deleteBtnHtml}
             ${replyIndicator}
         </div>
@@ -5795,6 +5813,14 @@ window.openUserProfile = async function(pseudoToFind) {
         const currentVote = voteDoc.exists ? voteDoc.data().parti : 'Non renseigné';
         const age = userData.dob ? calculateAge(userData.dob) : 'Inconnu';
         const bio = userData.bio || "Cet utilisateur n'a pas encore de bio.";
+		
+		let badgesHtml = '';
+if (userData.badges && userData.badges.length > 0) {
+    badgesHtml = userData.badges.map(b => BADGE_ICONS[b] || '').join('');
+}
+
+// Mise à jour du pseudo avec les badges
+document.getElementById('user-display-name').innerHTML = badgesHtml + (userData.displayName || pseudoToFind);
         
         const oldModal = document.getElementById('profile-modal');
         if (oldModal) oldModal.remove();
@@ -7833,12 +7859,16 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
             replyIndicator = `<span class="reply-indicator">en réponse à <span class="mention-link" style="pointer-events:none;">@${parentComment.pseudo}</span></span>`;
         }
     }
+	let badgesHtml = '';
+if (c.badges && c.badges.length > 0) {
+    badgesHtml = c.badges.map(b => BADGE_ICONS[b] || '').join('');
+}
 
     let html = `<div class="comment-node-wrapper" style="${isRoot ? 'margin-bottom: 12px;' : ''}">`;
     html += `
         <div class="comment-card ${targetClass}" ${cardClickAttr}>
             <div class="post-header" style="margin-bottom: 4px; display:flex; align-items:center; flex-wrap:wrap;">
-                <span class="post-pseudo ${pc}" style="${colorStyle}">${c.pseudo || 'Anonyme'}</span>
+                <span class="post-pseudo ${pc}" style="${colorStyle}">${badgesHtml} ${c.pseudo || 'Anonyme'}</span>
                 ${replyIndicator}
             </div>
             <span class="post-time" style="display:block; margin-bottom:6px;">${typeof getRelativeTime === 'function' ? getRelativeTime(c.timestamp) : ''}</span>
