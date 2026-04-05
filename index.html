@@ -7833,9 +7833,16 @@ window.buildProfileCommentNodeHtml = function(c, allComments, cacheKey, isRoot, 
     let pollHtml = typeof generatePollHtml === 'function' ? generatePollHtml(c, c.postId, c.id) : '';
     
     let textHtml = c.text ? `<div class="post-body" style="margin-bottom: 6px;">${typeof formatText === 'function' ? formatText(c.text) : c.text}</div>` : '';
-    const pc = c.partyClass || '';
-    const colorStyle = c.userColor ? `color: ${c.userColor} !important;` : '';
-    
+    // Ajoute ce bloc pour définir les badges avant de les injecter
+let badgesHtml = '';
+if (c.badges && Array.isArray(c.badges)) {
+    // Assure-toi que BADGE_ICONS est accessible, sinon ça restera vide
+    badgesHtml = c.badges.map(b => (typeof BADGE_ICONS !== 'undefined' ? BADGE_ICONS[b] : '') || '').join('');
+}
+
+const pc = c.partyClass || '';
+const colorStyle = c.userColor ? `color: ${c.userColor} !important;` : '';
+
     const cardClickAttr = `onclick="setProfileFocus('${cacheKey}', '${c.id}', event)"`;
     
     function countDescs(parentId) {
