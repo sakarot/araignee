@@ -8224,17 +8224,25 @@ window.answerQuestion = function(score) {
         const isExt1Left = (qData.ext1 === AXIS_LEFT_KEYS[qData.axe]);
         
         let left_add = 0, neutral_add = 0, right_add = 0;
-        if (score === 2) { 
-            left_add = isExt1Left ? 75 : 0; right_add = isExt1Left ? 0 : 75; neutral_add = 25; 
-        } else if (score === 1) { 
-            left_add = isExt1Left ? 25 : 0; right_add = isExt1Left ? 0 : 25; neutral_add = 75; 
-        } else if (score === 0) { 
-            neutral_add = 100; 
-        } else if (score === -1) { 
-            left_add = isExt1Left ? 0 : 25; right_add = isExt1Left ? 25 : 0; neutral_add = 75; 
-        } else if (score === -2) { 
-            left_add = isExt1Left ? 0 : 75; right_add = isExt1Left ? 75 : 0; neutral_add = 25; 
-        }
+            if (score === 2) { 
+        left_add = isExt1Left ? 100 : 0; 
+        right_add = isExt1Left ? 0 : 100; 
+        neutral_add = 0; 
+    } else if (score === 1) { 
+        left_add = isExt1Left ? 75 : 0; 
+        right_add = isExt1Left ? 0 : 75; 
+        neutral_add = 25; 
+    } else if (score === 0) { 
+        neutral_add = 100;
+    } else if (score === -1) { 
+        left_add = isExt1Left ? 0 : 75; 
+        right_add = isExt1Left ? 75 : 0; 
+        neutral_add = 25; 
+    } else if (score === -2) { 
+        left_add = isExt1Left ? 0 : 100; 
+        right_add = isExt1Left ? 100 : 0; 
+        neutral_add = 0; 
+    }
         
         stats.leftPts += left_add;
         stats.neutralPts += neutral_add;
