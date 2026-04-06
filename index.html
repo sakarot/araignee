@@ -8321,13 +8321,13 @@ window.finishQuiz = function() {
             let neutralPct = Math.round(stats.neutralPts / stats.count);
             let rightPct = Math.round(stats.rightPts / stats.count);
             
-                    // Correction des arrondis pour tomber pile sur 100% 
+                            // Correction des arrondis pour tomber pile sur 100% 
         const diff = 100 - (leftPct + neutralPct + rightPct);
         if (diff !== 0) neutralPct += diff; 
         
         const colors = AXIS_COLORS[axe] || ["var(--LFI)", "var(--LR)"];
 
-        // --- NOUVEAU BLOC HTML MIS À JOUR ---
+        // --- NOUVEAU BLOC HTML MIS À JOUR POUR LA RESTAURATION ---
         chartsHtml += ` 
             <div style="display:flex; flex-direction:column; gap:6px; background:var(--surface2); padding:12px; border-radius:8px; border:1px solid var(--border);"> 
                 <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; color:var(--text); font-family:'DM Sans', sans-serif;"> 
@@ -8347,7 +8347,7 @@ window.finishQuiz = function() {
                         ${rightPct > 5 ? rightPct + '%' : ''}
                     </div> 
                 </div> 
-            </div>`; 
+            </div>`;
         }
     }
     chartsContainer.innerHTML = chartsHtml;
